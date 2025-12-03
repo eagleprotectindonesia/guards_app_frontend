@@ -5,6 +5,7 @@ import { Site } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
 import { deleteSite } from '../actions';
 import SiteFormDialog from './site-form-dialog';
+import { EditButton, DeleteButton } from '../../components/action-buttons';
 import toast from 'react-hot-toast';
 
 export default function SiteList({ sites }: { sites: Serialized<Site>[] }) {
@@ -91,22 +92,15 @@ export default function SiteList({ sites }: { sites: Serialized<Site>[] }) {
                       })}
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
+                      <div className="flex items-center justify-end gap-2 opacity-100">
+                        <EditButton
                           onClick={() => handleEdit(site)}
-                          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          Edit
-                        </button>
-                        <button
+                          disabled={isPending}
+                        />
+                        <DeleteButton
                           onClick={() => handleDelete(site.id)}
                           disabled={isPending}
-                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                          title="Delete"
-                        >
-                          {isPending ? '...' : 'Delete'}
-                        </button>
+                        />
                       </div>
                     </td>
                   </tr>

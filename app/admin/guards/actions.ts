@@ -17,6 +17,10 @@ export async function createGuard(prevState: ActionState, formData: FormData): P
   const validatedFields = createGuardSchema.safeParse({
     name: formData.get('name'),
     phone: formData.get('phone'),
+    guardCode: formData.get('guardCode')?.toString() || undefined,
+    status: formData.get('status') === 'on' || formData.get('status') === 'true' || undefined,
+    leftDate: formData.get('leftDate')?.toString() || undefined,
+    note: formData.get('note')?.toString() || undefined,
   });
 
   if (!validatedFields.success) {
@@ -56,6 +60,10 @@ export async function updateGuard(id: string, prevState: ActionState, formData: 
   const validatedFields = createGuardSchema.safeParse({
     name: formData.get('name'),
     phone: formData.get('phone'),
+    guardCode: formData.get('guardCode')?.toString() || undefined,
+    status: formData.get('status') === 'on' || formData.get('status') === 'true' || undefined,
+    leftDate: formData.get('leftDate')?.toString() || undefined,
+    note: formData.get('note')?.toString() || undefined,
   });
 
   if (!validatedFields.success) {

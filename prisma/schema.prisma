@@ -20,13 +20,17 @@ model Admin {
 }
 
 model Guard {
-  id        String    @id @default(uuid())
-  name      String
-  phone     String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  checkins  Checkin[]
-  shifts    Shift[]
+  id          String    @id @default(uuid())
+  name        String
+  phone       String    @unique
+  guardCode   String?   @map("guard_code") @db.VarChar(10)
+  status      Boolean?  @default(true)
+  leftDate    DateTime? @map("left_date")
+  note        String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  checkins    Checkin[]
+  shifts      Shift[]
 
   @@map("guards")
 }

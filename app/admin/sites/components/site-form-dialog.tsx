@@ -34,7 +34,7 @@ export default function SiteFormDialog({ site, isOpen, onClose }: Props) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={site ? 'Edit Site' : 'Create New Site'}>
-      <form action={formAction} className="space-y-4">
+      <form action={formAction} className="space-y-4 p-4">
         {/* Name Field */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">

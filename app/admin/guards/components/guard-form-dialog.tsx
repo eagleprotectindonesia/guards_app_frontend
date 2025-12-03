@@ -1,18 +1,14 @@
 'use client';
 
+import { Serialized } from '@/lib/utils';
 import Modal from '../../components/modal';
 import { createGuard, updateGuard, ActionState } from '../actions';
 import { useActionState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-
-type Guard = {
-  id: string;
-  name: string;
-  phone: string;
-};
+import { Guard } from '@prisma/client';
 
 type Props = {
-  guard?: Guard; // If provided, it's an edit form
+  guard?: Serialized<Guard>; // If provided, it's an edit form
   isOpen: boolean;
   onClose: () => void;
 };
@@ -33,12 +29,8 @@ export default function GuardFormDialog({ guard, isOpen, onClose }: Props) {
   }, [state, onClose, guard]);
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={guard ? 'Edit Guard' : 'Add New Guard'}
-    >
-      <form action={formAction} className="space-y-4">
+    <Modal isOpen={isOpen} onClose={onClose} title={guard ? 'Edit Guard' : 'Add New Guard'}>
+      <form action={formAction} className="space-y-4 p-4">
         {/* Name Field */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -52,9 +44,7 @@ export default function GuardFormDialog({ guard, isOpen, onClose }: Props) {
             className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
             placeholder="e.g. John Doe"
           />
-          {state.errors?.name && (
-            <p className="text-red-500 text-xs mt-1">{state.errors.name[0]}</p>
-          )}
+          {state.errors?.name && <p className="text-red-500 text-xs mt-1">{state.errors.name[0]}</p>}
         </div>
 
         {/* Phone Field */}
@@ -70,9 +60,80 @@ export default function GuardFormDialog({ guard, isOpen, onClose }: Props) {
             className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
             placeholder="e.g. +15550123456"
           />
-          {state.errors?.phone && (
-            <p className="text-red-500 text-xs mt-1">{state.errors.phone[0]}</p>
-          )}
+          {state.errors?.phone && <p className="text-red-500 text-xs mt-1">{state.errors.phone[0]}</p>}
+        </div>
+
+        {/* Guard Code Field */}
+        <div>
+          <label htmlFor="guardCode" className="block text-sm font-medium text-gray-700 mb-1">
+            Guard Code
+          </label>
+          <input
+            type="text"
+            name="guardCode"
+            id="guardCode"
+            defaultValue={guard?.guardCode || ''}
+            className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+            placeholder="e.g. G001"
+          />
+        </div>
+
+        {/* Status Field */}
+        <div>
+          <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+            Status
+          </label>
+          <div className="flex items-center space-x-4">
+            <label className="inline-flex items-center">
+              <input
+                type="radio"
+                name="status"
+                value="true"
+                defaultChecked={guard?.status !== false}
+                className="text-red-500 focus:ring-red-500"
+              />
+              <span className="ml-2 text-gray-700">Active</span>
+            </label>
+            <label className="inline-flex items-center">
+              <input
+                type="radio"
+                name="status"
+                value="false"
+                defaultChecked={guard?.status === false}
+                className="text-red-500 focus:ring-red-500"
+              />
+              <span className="ml-2 text-gray-700">Inactive</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Left Date Field */}
+        <div>
+          <label htmlFor="leftDate" className="block text-sm font-medium text-gray-700 mb-1">
+            Left Date
+          </label>
+          <input
+            type="date"
+            name="leftDate"
+            id="leftDate"
+            defaultValue={guard?.leftDate ? new Date(guard.leftDate).toISOString().split('T')[0] : ''}
+            className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+          />
+        </div>
+
+        {/* Note Field */}
+        <div>
+          <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-1">
+            Note
+          </label>
+          <textarea
+            name="note"
+            id="note"
+            defaultValue={guard?.note || ''}
+            rows={3}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+            placeholder="Additional information about the guard"
+          />
         </div>
 
         {/* Error Message */}

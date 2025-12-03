@@ -1,75 +1,78 @@
 'use client';
 
 import Modal from '../../components/modal';
-import { createSite, updateSite, ActionState } from '../actions';
+import { createGuard, updateGuard, ActionState } from '../actions';
 import { useActionState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
-type Site = {
+type Guard = {
   id: string;
   name: string;
-  timeZone: string;
+  phone: string;
 };
 
 type Props = {
-  site?: Site; // If provided, it's an edit form
+  guard?: Guard; // If provided, it's an edit form
   isOpen: boolean;
   onClose: () => void;
 };
 
-export default function SiteFormDialog({ site, isOpen, onClose }: Props) {
+export default function GuardFormDialog({ guard, isOpen, onClose }: Props) {
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
-    site ? updateSite.bind(null, site.id) : createSite,
+    guard ? updateGuard.bind(null, guard.id) : createGuard,
     { success: false }
   );
 
   useEffect(() => {
     if (state.success) {
-      toast.success(state.message || (site ? 'Site updated successfully!' : 'Site created successfully!'));
+      toast.success(state.message || (guard ? 'Guard updated successfully!' : 'Guard created successfully!'));
       onClose();
     } else if (state.message && !state.success) {
       toast.error(state.message);
     }
-  }, [state, onClose, site]);
+  }, [state, onClose, guard]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={site ? 'Edit Site' : 'Create New Site'}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={guard ? 'Edit Guard' : 'Add New Guard'}
+    >
       <form action={formAction} className="space-y-4">
         {/* Name Field */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Site Name
+            Full Name
           </label>
           <input
             type="text"
             name="name"
             id="name"
-            defaultValue={site?.name || ''}
+            defaultValue={guard?.name || ''}
             className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
-            placeholder="e.g. Warehouse A"
+            placeholder="e.g. John Doe"
           />
-          {state.errors?.name && <p className="text-red-500 text-xs mt-1">{state.errors.name[0]}</p>}
+          {state.errors?.name && (
+            <p className="text-red-500 text-xs mt-1">{state.errors.name[0]}</p>
+          )}
         </div>
 
-        {/* TimeZone Field */}
+        {/* Phone Field */}
         <div>
-          <label htmlFor="timeZone" className="block text-sm font-medium text-gray-700 mb-1">
-            Time Zone
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+            Phone Number
           </label>
-          <select
-            name="timeZone"
-            id="timeZone"
-            defaultValue={site?.timeZone || 'UTC'}
-            className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all bg-white"
-          >
-            <option value="UTC">UTC</option>
-            <option value="America/New_York">America/New_York</option>
-            <option value="America/Los_Angeles">America/Los_Angeles</option>
-            <option value="Europe/London">Europe/London</option>
-            <option value="Asia/Tokyo">Asia/Tokyo</option>
-            {/* Add more as needed, or use a full list */}
-          </select>
-          {state.errors?.timeZone && <p className="text-red-500 text-xs mt-1">{state.errors.timeZone[0]}</p>}
+          <input
+            type="tel"
+            name="phone"
+            id="phone"
+            defaultValue={guard?.phone || ''}
+            className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+            placeholder="e.g. +15550123456"
+          />
+          {state.errors?.phone && (
+            <p className="text-red-500 text-xs mt-1">{state.errors.phone[0]}</p>
+          )}
         </div>
 
         {/* Error Message */}
@@ -91,7 +94,7 @@ export default function SiteFormDialog({ site, isOpen, onClose }: Props) {
             disabled={isPending}
             className="px-4 py-2 rounded-lg bg-red-500 text-white font-semibold text-sm hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-500/30"
           >
-            {isPending ? 'Saving...' : site ? 'Save Changes' : 'Create Site'}
+            {isPending ? 'Saving...' : guard ? 'Save Changes' : 'Add Guard'}
           </button>
         </div>
       </form>

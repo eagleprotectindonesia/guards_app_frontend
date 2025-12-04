@@ -25,6 +25,7 @@ model Guard {
   phone       String    @unique
   guardCode   String?   @map("guard_code") @db.VarChar(10)
   status      Boolean?  @default(true)
+  joinDate    DateTime? @map("join_date")
   leftDate    DateTime? @map("left_date")
   note        String?   @db.Text
   createdAt   DateTime  @default(now())
@@ -38,6 +39,7 @@ model Guard {
 model Site {
   id         String      @id @default(uuid())
   name       String
+  clientName String      @map("client_name")
   timeZone   String      @map("time_zone")
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
@@ -72,8 +74,8 @@ model Shift {
   endsAt                      DateTime       @map("ends_at")
   status                      ShiftStatus    @default(scheduled)
   checkInStatus               CheckInStatus? @map("check_in_status")
-  requiredCheckinIntervalMins Int            @default(60) @map("required_checkin_interval_minutes")
-  graceMinutes                Int            @default(15) @map("grace_minutes")
+  requiredCheckinIntervalMins Int            @default(20) @map("required_checkin_interval_minutes")
+  graceMinutes                Int            @default(2) @map("grace_minutes")
   lastHeartbeatAt             DateTime?      @map("last_heartbeat_at") @db.Timestamptz(6)
   missedCount                 Int            @default(0) @map("missed_count")
   createdBy                   String?        @map("created_by")

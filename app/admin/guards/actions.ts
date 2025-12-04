@@ -19,6 +19,7 @@ export async function createGuard(prevState: ActionState, formData: FormData): P
     phone: formData.get('phone'),
     guardCode: formData.get('guardCode')?.toString() || undefined,
     status: formData.get('status') === 'on' || formData.get('status') === 'true' || undefined,
+    joinDate: formData.get('joinDate')?.toString() || undefined,
     leftDate: formData.get('leftDate')?.toString() || undefined,
     note: formData.get('note')?.toString() || undefined,
   });
@@ -62,6 +63,7 @@ export async function updateGuard(id: string, prevState: ActionState, formData: 
     phone: formData.get('phone'),
     guardCode: formData.get('guardCode')?.toString() || undefined,
     status: formData.get('status') === 'on' || formData.get('status') === 'true' || undefined,
+    joinDate: formData.get('joinDate')?.toString() || undefined,
     leftDate: formData.get('leftDate')?.toString() || undefined,
     note: formData.get('note')?.toString() || undefined,
   });

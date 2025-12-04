@@ -114,7 +114,7 @@ export default function GuardList({ guards }: { guards: Serialized<Guard>[] }) {
                       {guard.leftDate ? new Date(guard.leftDate).toLocaleDateString() : '-'}
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500">
-                      {new Date(guard.createdAt).toLocaleDateString(undefined, {
+                      {new Date(guard.joinDate || guard.createdAt).toLocaleDateString(undefined, {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
@@ -141,7 +141,14 @@ export default function GuardList({ guards }: { guards: Serialized<Guard>[] }) {
       </div>
 
       {/* Dialogs */}
-      {showDialog && <GuardFormDialog isOpen={true} onClose={closeDialog} guard={editingGuard} />}
+      {showDialog && (
+        <GuardFormDialog
+          key={editingGuard?.id || 'new-guard'}
+          isOpen={true}
+          onClose={closeDialog}
+          guard={editingGuard}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={!!deleteId}

@@ -20,6 +20,7 @@ export const createGuardSchema = z.object({
   phone: z.string().min(1), // Simple validation, can be enhanced with regex
   guardCode: z.string().max(10).optional(),
   status: z.boolean().optional(),
+  joinDate: z.string().datetime().optional(),
   leftDate: z.string().datetime().optional(),
   note: z.string().optional(),
 });

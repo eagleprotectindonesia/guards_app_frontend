@@ -3,9 +3,10 @@
 import { Serialized } from '@/lib/utils';
 import Modal from '../../components/modal';
 import { createGuard, updateGuard, ActionState } from '../actions';
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Guard } from '@prisma/client';
+import DatePicker from 'react-datepicker';
 
 type Props = {
   guard?: Serialized<Guard>; // If provided, it's an edit form
@@ -18,6 +19,9 @@ export default function GuardFormDialog({ guard, isOpen, onClose }: Props) {
     guard ? updateGuard.bind(null, guard.id) : createGuard,
     { success: false }
   );
+
+  const [joinDate, setJoinDate] = useState<Date | null>(guard?.joinDate ? new Date(guard.joinDate) : null);
+  const [leftDate, setLeftDate] = useState<Date | null>(guard?.leftDate ? new Date(guard.leftDate) : null);
 
   useEffect(() => {
     if (state.success) {
@@ -107,17 +111,37 @@ export default function GuardFormDialog({ guard, isOpen, onClose }: Props) {
           </div>
         </div>
 
+        {/* Join Date Field */}
+        <div>
+          <label htmlFor="joinDate" className="block text-sm font-medium text-gray-700 mb-1">
+            Join Date
+          </label>
+          <input type="hidden" name="joinDate" value={joinDate?.toISOString() || ''} />
+          <DatePicker
+            selected={joinDate}
+            onChange={date => setJoinDate(date)}
+            showTimeSelect
+            dateFormat="MM/dd/yyyy h:mm aa"
+            placeholderText="Select date and time"
+            className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+            wrapperClassName="w-full"
+          />
+        </div>
+
         {/* Left Date Field */}
         <div>
           <label htmlFor="leftDate" className="block text-sm font-medium text-gray-700 mb-1">
             Left Date
           </label>
-          <input
-            type="date"
-            name="leftDate"
-            id="leftDate"
-            defaultValue={guard?.leftDate ? new Date(guard.leftDate).toISOString().split('T')[0] : ''}
+          <input type="hidden" name="leftDate" value={leftDate?.toISOString() || ''} />
+          <DatePicker
+            selected={leftDate}
+            onChange={date => setLeftDate(date)}
+            showTimeSelect
+            dateFormat="MM/dd/yyyy h:mm aa"
+            placeholderText="Select date and time"
             className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+            wrapperClassName="w-full"
           />
         </div>
 

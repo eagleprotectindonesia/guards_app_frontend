@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useActionState } from 'react';
 import { ShiftWithRelations } from '@/app/admin/(authenticated)/shifts/components/shift-list';
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 // Type for password change form state
 type PasswordChangeState = {
@@ -54,15 +55,43 @@ async function changeGuardPasswordAction(
 }
 
 export default function GuardPage() {
+  const router = useRouter(); // Initialize router
   const [activeShift, setActiveShift] = useState<ShiftWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [nextDue, setNextDue] = useState<Date | null>(null);
+  const [guardDetails, setGuardDetails] = useState<{ name: string; guardCode?: string } | null>(null); // New state for guard details
   const [guardName, setGuardName] = useState('Guard');
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [passwordChangeState, passwordChangeFormAction] = useActionState(changeGuardPasswordAction, {});
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    // Update current time every second to check window validity
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const fetchGuardDetails = async () => {
+    try {
+      const res = await fetch('/api/my/profile');
+      if (res.ok) {
+        const data = await res.json();
+        setGuardDetails(data.guard);
+        setGuardName(data.guard?.name || 'Guard');
+      } else {
+        console.error('Failed to fetch guard details');
+        setGuardDetails(null);
+      }
+    } catch (error) {
+      console.error('Network error fetching guard details:', error);
+      setGuardDetails(null);
+    }
+  };
 
   const fetchShift = async () => {
+    // Only set loading true if it's the first fetch or if guardDetails are already loaded
+    // This prevents showing a loader when only guard details are being fetched
     setLoading(true);
     try {
       const res = await fetch('/api/my/active-shift');
@@ -75,14 +104,16 @@ export default function GuardPage() {
       const data = await res.json();
       if (data.activeShift) {
         setActiveShift(data.activeShift);
-        setGuardName(data.activeShift.guard?.name || 'Guard');
+        // If guardDetails are not yet set, set guardName from activeShift
+        if (!guardDetails) {
+          setGuardName(data.activeShift.guard?.name || 'Guard');
+        }
 
         const last = data.activeShift.lastHeartbeatAt || data.activeShift.startsAt;
         const interval = data.activeShift.requiredCheckinIntervalMins * 60000;
         setNextDue(new Date(new Date(last).getTime() + interval));
       } else {
         setActiveShift(null);
-        setGuardName('Guard');
       }
     } catch (err) {
       console.error('Network error fetching active shift:', err);
@@ -92,6 +123,7 @@ export default function GuardPage() {
   };
 
   useEffect(() => {
+    fetchGuardDetails();
     fetchShift();
   }, []);
 
@@ -108,7 +140,7 @@ export default function GuardPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setStatus(`Error: ${data.message || 'Check-in failed.'}`);
+        setStatus(`Error: ${data.message || data.error || 'Check-in failed.'}`);
       } else {
         setStatus(`Checked in! Status: ${data.status}`);
         setNextDue(new Date(data.next_due_at));
@@ -120,9 +152,50 @@ export default function GuardPage() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/api/auth/guard/logout', { method: 'POST' });
+      if (res.ok) {
+        router.push('/guard/login');
+      } else {
+        console.error('Logout failed');
+      }
+    } catch (error) {
+      console.error('Network error during logout:', error);
+    }
+  };
+
+  // Calculate Check-in Window Status
+  let canCheckIn = false;
+  let windowMessage = '';
+  
+  if (activeShift) {
+    const lastHeartbeat = new Date(activeShift.lastHeartbeatAt || activeShift.startsAt);
+    const nextDueTime = new Date(lastHeartbeat.getTime() + activeShift.requiredCheckinIntervalMins * 60000);
+    const graceEndTime = new Date(nextDueTime.getTime() + activeShift.graceMinutes * 60000);
+    
+    canCheckIn = currentTime >= nextDueTime && currentTime <= graceEndTime;
+
+    if (currentTime < nextDueTime) {
+      const diffSec = Math.ceil((nextDueTime.getTime() - currentTime.getTime()) / 1000);
+      if (diffSec > 60) {
+         windowMessage = `Opens in ${Math.ceil(diffSec / 60)} min`;
+      } else {
+         windowMessage = `Opens in ${diffSec} sec`;
+      }
+    } else if (currentTime > graceEndTime) {
+      windowMessage = 'Window missed';
+    } else {
+      windowMessage = 'Check-in Open';
+    }
+  }
+
   return (
     <div className="p-8 max-w-md mx-auto font-sans">
-      <h1 className="text-2xl font-bold mb-4">Welcome, {guardName}!</h1>
+      <h1 className="text-2xl font-bold mb-1">Welcome, {guardName}!</h1>
+      {activeShift?.guard?.guardCode && (
+        <p className="text-gray-500 text-sm mb-4">Guard Code: {activeShift.guard.guardCode}</p>
+      )}
 
       {loading && <p>Loading your shift details...</p>}
 
@@ -145,21 +218,29 @@ export default function GuardPage() {
               {nextDue ? nextDue.toLocaleTimeString() : '--:--'}
             </p>
             <p className="text-xs text-gray-400 mt-1">Grace period: {activeShift.graceMinutes} min</p>
+            <p className={`text-sm font-medium mt-2 ${canCheckIn ? 'text-green-600' : 'text-amber-600'}`}>
+              {windowMessage}
+            </p>
           </div>
 
           <button
             onClick={handleCheckIn}
-            className="w-full bg-green-600 hover:bg-green-700 text-white text-lg font-bold py-4 rounded-lg shadow transition-all active:scale-95"
+            disabled={!canCheckIn}
+            className={`w-full text-lg font-bold py-4 rounded-lg shadow transition-all active:scale-95 ${
+              canCheckIn
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
-            CHECK IN NOW
+            {canCheckIn ? 'CHECK IN NOW' : 'LOCKED'}
           </button>
 
-          {status && <p className="mt-4 text-center font-medium">{status}</p>}
+          {status && <p className="mt-4 text-center font-medium text-sm text-gray-700">{status}</p>}
         </div>
       )}
 
       <div className="mt-8 border-t pt-6">
-        <Button onClick={() => setShowPasswordChange(!showPasswordChange)} variant="secondary" className="w-full">
+        <Button onClick={() => setShowPasswordChange(!showPasswordChange)} variant="secondary" className="w-full mb-4">
           {showPasswordChange ? 'Hide Password Change' : 'Change Password'}
         </Button>
 
@@ -211,6 +292,10 @@ export default function GuardPage() {
             </form>
           </div>
         )}
+
+        <Button onClick={handleLogout} variant="destructive" className="w-full">
+          Logout
+        </Button>
       </div>
     </div>
   );

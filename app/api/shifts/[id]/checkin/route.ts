@@ -54,8 +54,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const nextDue = new Date(lastHeartbeat.getTime() + shift.requiredCheckinIntervalMins * 60000);
     const gracePeriodEnd = new Date(nextDue.getTime() + shift.graceMinutes * 60000);
 
-    let status: 'on_time' | 'late' = 'on_time';
+    // New: Validate check-in time window
+    if (now < nextDue) {
+      return NextResponse.json({ error: 'Too early to check in for this interval' }, { status: 400 });
+    }
     if (now > gracePeriodEnd) {
+      return NextResponse.json({ error: 'Too late to check in for this interval' }, { status: 400 });
+    }
+
+    let status: 'on_time' | 'late' = 'on_time';
+    if (now > nextDue) { // If check-in is after nextDue, it's late within the grace period
       status = 'late';
     }
 

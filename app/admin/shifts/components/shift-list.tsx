@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-type ShiftWithRelations = Shift & { site: Site; shiftType: ShiftType; guard: Guard | null };
+export type ShiftWithRelations = Shift & { site: Site; shiftType: ShiftType; guard: Guard | null };
 
 export default function ShiftList({
   shifts,

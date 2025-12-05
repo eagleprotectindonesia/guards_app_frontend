@@ -8,10 +8,18 @@ import ShiftTypeFormDialog from './shift-type-form-dialog';
 import ConfirmDialog from '../../components/confirm-dialog';
 import { EditButton, DeleteButton } from '../../components/action-buttons';
 import toast from 'react-hot-toast';
+import PaginationNav from '../../components/pagination-nav';
 
 type ShiftTypeOnly = ShiftType; // Renamed type, no longer includes Site
 
-export default function ShiftTypeList({ shiftTypes }: { shiftTypes: Serialized<ShiftTypeOnly>[] }) {
+type ShiftTypeListProps = {
+  shiftTypes: Serialized<ShiftTypeOnly>[];
+  page: number;
+  perPage: number;
+  totalCount: number;
+};
+
+export default function ShiftTypeList({ shiftTypes, page, perPage, totalCount }: ShiftTypeListProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingShiftType, setEditingShiftType] = useState<Serialized<ShiftTypeOnly> | undefined>(undefined);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -103,6 +111,9 @@ export default function ShiftTypeList({ shiftTypes }: { shiftTypes: Serialized<S
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      <PaginationNav page={page} perPage={perPage} totalCount={totalCount} />
 
       {/* Dialogs */}
       {showDialog && (

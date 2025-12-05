@@ -6,9 +6,17 @@ import { Serialized } from '@/lib/utils';
 import { deleteSite } from '../actions';
 import SiteFormDialog from './site-form-dialog';
 import { EditButton, DeleteButton } from '../../components/action-buttons';
+import PaginationNav from '../../components/pagination-nav';
 import toast from 'react-hot-toast';
 
-export default function SiteList({ sites }: { sites: Serialized<Site>[] }) {
+type SiteListProps = {
+  sites: Serialized<Site>[];
+  page: number;
+  perPage: number;
+  totalCount: number;
+};
+
+export default function SiteList({ sites, page, perPage, totalCount }: SiteListProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Serialized<Site> | undefined>(undefined);
   const [isPending, startTransition] = useTransition();
@@ -104,6 +112,8 @@ export default function SiteList({ sites }: { sites: Serialized<Site>[] }) {
           </table>
         </div>
       </div>
+
+      <PaginationNav page={page} perPage={perPage} totalCount={totalCount} />
 
       {/* Dialogs */}
       {showDialog && <SiteFormDialog isOpen={true} onClose={closeDialog} site={editingSite} />}

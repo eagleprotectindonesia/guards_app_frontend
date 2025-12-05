@@ -1,33 +1,46 @@
 import { prisma } from '@/lib/prisma';
-import { serialize } from '@/lib/utils';
+import { serialize, getPaginationParams } from '@/lib/utils';
 import ShiftList from './components/shift-list';
 import { parseISO, startOfDay, endOfDay } from 'date-fns';
+import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ShiftsPage({
   searchParams,
 }: {
-  searchParams: { startDate?: string; endDate?: string; guardId?: string; siteId?: string };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { startDate, endDate, guardId, siteId } = searchParams;
+  const resolvedSearchParams = await searchParams;
+  const { page, perPage, skip } = getPaginationParams(resolvedSearchParams);
+  
+  const startDate = typeof resolvedSearchParams.startDate === 'string' ? resolvedSearchParams.startDate : undefined;
+  const endDate = typeof resolvedSearchParams.endDate === 'string' ? resolvedSearchParams.endDate : undefined;
+  const guardId = typeof resolvedSearchParams.guardId === 'string' ? resolvedSearchParams.guardId : undefined;
+  const siteId = typeof resolvedSearchParams.siteId === 'string' ? resolvedSearchParams.siteId : undefined;
 
   const parsedStartDate = startDate ? startOfDay(parseISO(startDate)) : undefined;
   const parsedEndDate = endDate ? endOfDay(parseISO(endDate)) : undefined;
 
-  const shifts = await prisma.shift.findMany({
-    where: {
-      startsAt: {
-        gte: parsedStartDate,
-        lte: parsedEndDate,
-      },
-      guardId: guardId || undefined,
-      siteId: siteId || undefined,
+  const where = {
+    startsAt: {
+      gte: parsedStartDate,
+      lte: parsedEndDate,
     },
-    include: { site: true, shiftType: true, guard: true },
-    orderBy: { startsAt: 'desc' },
-    take: 100,
-  });
+    guardId: guardId || undefined,
+    siteId: siteId || undefined,
+  };
+
+  const [shifts, totalCount] = await prisma.$transaction([
+    prisma.shift.findMany({
+      where,
+      include: { site: true, shiftType: true, guard: true },
+      orderBy: { startsAt: 'desc' },
+      skip,
+      take: perPage,
+    }),
+    prisma.shift.count({ where }),
+  ]);
 
   const sites = await prisma.site.findMany({ orderBy: { name: 'asc' } });
   const shiftTypes = await prisma.shiftType.findMany({ orderBy: { name: 'asc' } });
@@ -43,16 +56,21 @@ export default async function ShiftsPage({
 
   return (
     <div className="max-w-7xl mx-auto">
-      <ShiftList
-        shifts={serializedShifts}
-        sites={serializedSites}
-        shiftTypes={serializedShiftTypes}
-        guards={serializedGuards}
-        startDate={startDate}
-        endDate={endDate}
-        guardId={guardId}
-        siteId={siteId}
-      />
+      <Suspense fallback={<div>Loading shifts...</div>}>
+        <ShiftList
+          shifts={serializedShifts}
+          sites={serializedSites}
+          shiftTypes={serializedShiftTypes}
+          guards={serializedGuards}
+          startDate={startDate}
+          endDate={endDate}
+          guardId={guardId}
+          siteId={siteId}
+          page={page}
+          perPage={perPage}
+          totalCount={totalCount}
+        />
+      </Suspense>
     </div>
   );
 }

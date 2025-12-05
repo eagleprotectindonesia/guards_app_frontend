@@ -7,9 +7,17 @@ import { deleteGuard } from '../actions';
 import GuardFormDialog from './guard-form-dialog';
 import ConfirmDialog from '../../components/confirm-dialog';
 import { EditButton, DeleteButton } from '../../components/action-buttons';
+import PaginationNav from '../../components/pagination-nav';
 import toast from 'react-hot-toast';
 
-export default function GuardList({ guards }: { guards: Serialized<Guard>[] }) {
+type GuardListProps = {
+  guards: Serialized<Guard>[];
+  page: number;
+  perPage: number;
+  totalCount: number;
+};
+
+export default function GuardList({ guards, page, perPage, totalCount }: GuardListProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingGuard, setEditingGuard] = useState<Serialized<Guard> | undefined>(undefined);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -139,6 +147,8 @@ export default function GuardList({ guards }: { guards: Serialized<Guard>[] }) {
           </table>
         </div>
       </div>
+
+      <PaginationNav page={page} perPage={perPage} totalCount={totalCount} />
 
       {/* Dialogs */}
       {showDialog && (

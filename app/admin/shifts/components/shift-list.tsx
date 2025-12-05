@@ -8,11 +8,26 @@ import ShiftFormDialog from './shift-form-dialog';
 import ShiftFilterModal from './shift-filter-modal';
 import ConfirmDialog from '../../components/confirm-dialog';
 import { EditButton, DeleteButton } from '../../components/action-buttons';
+import PaginationNav from '../../components/pagination-nav';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export type ShiftWithRelations = Shift & { site: Site; shiftType: ShiftType; guard: Guard | null };
+
+type ShiftListProps = {
+  shifts: Serialized<ShiftWithRelations>[];
+  sites: Serialized<Site>[];
+  shiftTypes: Serialized<ShiftType>[];
+  guards: Serialized<Guard>[];
+  startDate?: string;
+  endDate?: string;
+  guardId?: string;
+  siteId?: string;
+  page: number;
+  perPage: number;
+  totalCount: number;
+};
 
 export default function ShiftList({
   shifts,
@@ -23,16 +38,10 @@ export default function ShiftList({
   endDate,
   guardId,
   siteId,
-}: {
-  shifts: Serialized<ShiftWithRelations>[];
-  sites: Serialized<Site>[];
-  shiftTypes: Serialized<ShiftType>[];
-  guards: Serialized<Guard>[];
-  startDate?: string;
-  endDate?: string;
-  guardId?: string;
-  siteId?: string;
-}) {
+  page,
+  perPage,
+  totalCount,
+}: ShiftListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -103,6 +112,7 @@ export default function ShiftList({
       params.delete('guardId');
     }
 
+    params.set('page', '1'); // Reset to page 1 when filtering
     router.push(`/admin/shifts?${params.toString()}`);
   };
 
@@ -244,6 +254,8 @@ export default function ShiftList({
           </table>
         </div>
       </div>
+
+      <PaginationNav page={page} perPage={perPage} totalCount={totalCount} />
 
       {/* Dialogs */}
       {isFilterOpen && (

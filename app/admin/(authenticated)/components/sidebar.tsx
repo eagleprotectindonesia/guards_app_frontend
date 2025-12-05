@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MapPin, Users, Calendar, Bell, Settings, LogOut, Shield, Layers } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, MapPin, Users, Calendar, Bell, User, LogOut, Shield, Layers } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -15,6 +15,19 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      router.push('/admin/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
@@ -48,15 +61,15 @@ export default function Sidebar() {
 
         <div className="pt-4 mt-4 border-t border-gray-100">
           <Link
-            href="/admin/settings"
+            href="/admin/profile"
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              pathname.startsWith('/admin/settings')
+              pathname.startsWith('/admin/profile')
                 ? 'bg-red-50 text-red-600'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
-            <Settings className="w-5 h-5 text-gray-500" />
-            Settings
+            <User className="w-5 h-5 text-gray-500" />
+            Profile
           </Link>
         </div>
       </nav>
@@ -72,7 +85,10 @@ export default function Sidebar() {
             <p className="text-xs text-gray-500">admin@example.com</p>
           </div>
         </div>
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+        >
           <LogOut className="w-4 h-4" />
           Log Out
         </button>

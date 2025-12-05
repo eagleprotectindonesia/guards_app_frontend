@@ -93,14 +93,8 @@ export default function SiteList({ sites }: { sites: Serialized<Site>[] }) {
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">
-                        <EditButton
-                          onClick={() => handleEdit(site)}
-                          disabled={isPending}
-                        />
-                        <DeleteButton
-                          onClick={() => handleDelete(site.id)}
-                          disabled={isPending}
-                        />
+                        <EditButton onClick={() => handleEdit(site)} disabled={isPending} />
+                        <DeleteButton onClick={() => handleDelete(site.id)} disabled={isPending} />
                       </div>
                     </td>
                   </tr>
@@ -112,13 +106,7 @@ export default function SiteList({ sites }: { sites: Serialized<Site>[] }) {
       </div>
 
       {/* Dialogs */}
-      {showDialog && (
-        <SiteFormDialog
-          isOpen={true}
-          onClose={closeDialog}
-          site={editingSite}
-        />
-      )}
+      {showDialog && <SiteFormDialog isOpen={true} onClose={closeDialog} site={editingSite} />}
     </div>
   );
 }

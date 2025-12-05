@@ -7,16 +7,12 @@ import { Site, Guard } from '@prisma/client';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseISO } from 'date-fns';
+import Select from '../../components/select'; // Import the custom Select component
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onApply: (filters: {
-    startDate: Date | null;
-    endDate: Date | null;
-    siteId: string;
-    guardId: string;
-  }) => void;
+  onApply: (filters: { startDate?: Date; endDate?: Date; siteId: string; guardId: string }) => void;
   initialFilters: {
     startDate?: string;
     endDate?: string;
@@ -27,22 +23,24 @@ type Props = {
   guards: Serialized<Guard>[];
 };
 
-export default function ShiftFilterModal({
-  isOpen,
-  onClose,
-  onApply,
-  initialFilters,
-  sites,
-  guards,
-}: Props) {
-  const [startDate, setStartDate] = useState<Date | null>(
-    initialFilters.startDate ? parseISO(initialFilters.startDate) : null
+export default function ShiftFilterModal({ isOpen, onClose, onApply, initialFilters, sites, guards }: Props) {
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    initialFilters.startDate ? parseISO(initialFilters.startDate) : undefined
   );
-  const [endDate, setEndDate] = useState<Date | null>(
-    initialFilters.endDate ? parseISO(initialFilters.endDate) : null
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    initialFilters.endDate ? parseISO(initialFilters.endDate) : undefined
   );
   const [siteId, setSiteId] = useState<string>(initialFilters.siteId || '');
   const [guardId, setGuardId] = useState<string>(initialFilters.guardId || '');
+
+  const siteOptions = [
+    { value: '', label: 'All Sites' },
+    ...sites.map(site => ({ value: site.id, label: site.name }))
+  ];
+  const guardOptions = [
+    { value: '', label: 'All Guards' },
+    ...guards.map(guard => ({ value: guard.id, label: guard.name }))
+  ];
 
   const handleApply = () => {
     onApply({
@@ -55,12 +53,12 @@ export default function ShiftFilterModal({
   };
 
   const handleClear = () => {
-    setStartDate(null);
-    setEndDate(null);
+    setStartDate(undefined);
+    setEndDate(undefined);
     setSiteId('');
     setGuardId('');
   };
-  
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Filter Shifts">
       <div className="space-y-4 p-4">
@@ -71,7 +69,7 @@ export default function ShiftFilterModal({
             <div>
               <DatePicker
                 selected={startDate}
-                onChange={(date: Date | null) => setStartDate(date)}
+                onChange={date => setStartDate(date as Date)}
                 selectsStart
                 startDate={startDate}
                 endDate={endDate}
@@ -84,7 +82,7 @@ export default function ShiftFilterModal({
             <div>
               <DatePicker
                 selected={endDate}
-                onChange={(date: Date | null) => setEndDate(date)}
+                onChange={date => setEndDate(date as Date)}
                 selectsEnd
                 startDate={startDate}
                 endDate={endDate}
@@ -102,19 +100,15 @@ export default function ShiftFilterModal({
           <label htmlFor="filter-site" className="block text-sm font-medium text-gray-700 mb-1">
             Site
           </label>
-          <select
+          <Select
             id="filter-site"
-            value={siteId}
-            onChange={(e) => setSiteId(e.target.value)}
-            className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all bg-white text-sm"
-          >
-            <option value="">All Sites</option>
-            {sites.map((site) => (
-              <option key={site.id} value={site.id}>
-                {site.name}
-              </option>
-            ))}
-          </select>
+            instanceId="filter-site"
+            options={siteOptions}
+            value={siteOptions.find(option => option.value === siteId)}
+            onChange={selectedOption => setSiteId(selectedOption ? selectedOption.value : '')}
+            placeholder="All Sites"
+            isClearable={false} // Since "All Sites" is an option, clearing isn't necessary.
+          />
         </div>
 
         {/* Guard Filter */}
@@ -122,32 +116,24 @@ export default function ShiftFilterModal({
           <label htmlFor="filter-guard" className="block text-sm font-medium text-gray-700 mb-1">
             Guard
           </label>
-          <select
+          <Select
             id="filter-guard"
-            value={guardId}
-            onChange={(e) => setGuardId(e.target.value)}
-            className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all bg-white text-sm"
-          >
-            <option value="">All Guards</option>
-            {guards.map((guard) => (
-              <option key={guard.id} value={guard.id}>
-                {guard.name}
-              </option>
-            ))}
-          </select>
+            instanceId="filter-guard"
+            options={guardOptions}
+            value={guardOptions.find(option => option.value === guardId)}
+            onChange={selectedOption => setGuardId(selectedOption ? selectedOption.value : '')}
+            placeholder="All Guards"
+            isClearable={false} // Since "All Guards" is an option, clearing isn't necessary.
+          />
         </div>
 
         {/* Actions */}
         <div className="flex justify-between pt-6">
-          <button
-            type="button"
-            onClick={handleClear}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-          >
+          <button type="button" onClick={handleClear} className="text-sm text-gray-500 hover:text-gray-700 underline">
             Clear Filters
           </button>
           <div className="flex gap-2">
-             <button
+            <button
               type="button"
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"

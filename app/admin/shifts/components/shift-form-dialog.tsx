@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { Shift, Site, ShiftType, Guard } from '@prisma/client';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import Select from 'react-select';
+import Select from '../../components/select';
 
 type Props = {
   shift?: Serialized<Shift>;
@@ -41,6 +41,7 @@ export default function ShiftFormDialog({ shift, sites, shiftTypes, guards, isOp
 
   const siteOptions = sites.map(site => ({ value: site.id, label: site.name }));
   const guardOptions = guards.map(guard => ({ value: guard.id, label: guard.name }));
+  const shiftTypeOptions = shiftTypes.map(st => ({ value: st.id, label: `${st.name} (${st.startTime} - ${st.endTime})` }));
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={shift ? 'Edit Shift' : 'Schedule New Shift'}>
@@ -58,14 +59,6 @@ export default function ShiftFormDialog({ shift, sites, shiftTypes, guards, isOp
             onChange={(option) => setSelectedSiteId(option?.value || '')}
             placeholder="Select a site..."
             isClearable
-            classNames={{
-              control: (state) =>
-                `!rounded-lg !border-gray-200 !min-h-[40px] ${
-                  state.isFocused ? '!border-red-500 !ring-2 !ring-red-500/20' : ''
-                }`,
-              singleValue: () => '!text-gray-900',
-              input: () => '!text-gray-900',
-            }}
           />
           <input type="hidden" name="siteId" value={selectedSiteId} />
           {state.errors?.siteId && <p className="text-red-500 text-xs mt-1">{state.errors.siteId[0]}</p>}
@@ -76,22 +69,17 @@ export default function ShiftFormDialog({ shift, sites, shiftTypes, guards, isOp
           <label htmlFor="shiftTypeId" className="block text-sm font-medium text-gray-700 mb-1">
             Shift Type
           </label>
-          <select
-            name="shiftTypeId"
-            id="shiftTypeId"
-            value={selectedShiftTypeId}
-            onChange={e => setSelectedShiftTypeId(e.target.value)}
-            className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all bg-white"
-          >
-            <option value="" disabled>
-              Select a shift type
-            </option>
-            {shiftTypes.map(st => (
-              <option key={st.id} value={st.id}>
-                {st.name} ({st.startTime} - {st.endTime})
-              </option>
-            ))}
-          </select>
+          <Select
+            id="shift-type-select"
+            instanceId="shift-type-select"
+            options={shiftTypeOptions}
+            value={shiftTypeOptions.find(opt => opt.value === selectedShiftTypeId) || null}
+            onChange={(option) => setSelectedShiftTypeId(option?.value || '')}
+            placeholder="Select a shift type"
+            isClearable={false}
+            isSearchable={false}
+          />
+          <input type="hidden" name="shiftTypeId" value={selectedShiftTypeId} />
           {state.errors?.shiftTypeId && <p className="text-red-500 text-xs mt-1">{state.errors.shiftTypeId[0]}</p>}
         </div>
 
@@ -108,12 +96,6 @@ export default function ShiftFormDialog({ shift, sites, shiftTypes, guards, isOp
             onChange={(option) => setSelectedGuardId(option?.value || '')}
             placeholder="Unassigned"
             isClearable
-            classNames={{
-              control: (state) =>
-                `!rounded-lg !border-gray-200 !min-h-[40px] ${
-                  state.isFocused ? '!border-red-500 !ring-2 !ring-red-500/20' : ''
-                }`,
-            }}
           />
           <input type="hidden" name="guardId" value={selectedGuardId} />
         </div>

@@ -14,20 +14,20 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 type ShiftWithRelations = Shift & { site: Site; shiftType: ShiftType; guard: Guard | null };
 
-export default function ShiftList({ 
-  shifts, 
-  sites, 
-  shiftTypes, 
+export default function ShiftList({
+  shifts,
+  sites,
+  shiftTypes,
   guards,
   startDate,
   endDate,
   guardId,
   siteId,
-}: { 
-  shifts: Serialized<ShiftWithRelations>[], 
-  sites: Serialized<Site>[],
-  shiftTypes: Serialized<ShiftType>[],
-  guards: Serialized<Guard>[],
+}: {
+  shifts: Serialized<ShiftWithRelations>[];
+  sites: Serialized<Site>[];
+  shiftTypes: Serialized<ShiftType>[];
+  guards: Serialized<Guard>[];
   startDate?: string;
   endDate?: string;
   guardId?: string;
@@ -65,7 +65,7 @@ export default function ShiftList({
     setEditingShift(shift);
     setDialogKey(prev => prev + 1);
   };
-  
+
   const handleCreate = () => {
     setIsCreateOpen(true);
     setDialogKey(prev => prev + 1);
@@ -76,20 +76,15 @@ export default function ShiftList({
     setEditingShift(undefined);
   };
 
-  const handleApplyFilter = (filters: {
-    startDate: Date | null;
-    endDate: Date | null;
-    siteId: string;
-    guardId: string;
-  }) => {
+  const handleApplyFilter = (filters: { startDate?: Date; endDate?: Date; siteId: string; guardId: string }) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     if (filters.startDate) {
       params.set('startDate', format(filters.startDate, 'yyyy-MM-dd'));
     } else {
       params.delete('startDate');
     }
-    
+
     if (filters.endDate) {
       params.set('endDate', format(filters.endDate, 'yyyy-MM-dd'));
     } else {
@@ -115,11 +110,16 @@ export default function ShiftList({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'missed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800';
+      case 'in_progress':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'missed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -136,10 +136,17 @@ export default function ShiftList({
         <div className="flex gap-2">
           <button
             onClick={() => setIsFilterOpen(true)}
-            className={`inline-flex items-center justify-center h-10 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm ${activeFiltersCount > 0 ? 'text-red-600 border-red-200 bg-red-50' : ''}`}
+            className={`inline-flex items-center justify-center h-10 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm ${
+              activeFiltersCount > 0 ? 'text-red-600 border-red-200 bg-red-50' : ''
+            }`}
           >
             <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
             </svg>
             Filters
             {activeFiltersCount > 0 && (
@@ -205,7 +212,11 @@ export default function ShiftList({
                       </div>
                     </td>
                     <td className="py-4 px-6 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(shift.status)}`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                          shift.status
+                        )}`}
+                      >
                         {shift.status.replace('_', ' ').toUpperCase()}
                       </span>
                     </td>
@@ -217,10 +228,7 @@ export default function ShiftList({
                         const isPastOrOngoing = shiftEndsAt < now || (shiftStartsAt < now && shiftEndsAt > now);
                         return (
                           <div className="flex items-center justify-end gap-2 opacity-100">
-                            <EditButton
-                              onClick={() => handleEdit(shift)}
-                              disabled={isPending || isPastOrOngoing}
-                            />
+                            <EditButton onClick={() => handleEdit(shift)} disabled={isPending || isPastOrOngoing} />
                             <DeleteButton
                               onClick={() => handleDeleteClick(shift.id)}
                               disabled={isPending || isPastOrOngoing}

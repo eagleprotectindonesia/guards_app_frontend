@@ -38,24 +38,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     // 3. Calculate Status
-    // due = max(last_heartbeat_at, starts_at) + interval
-    const lastHeartbeat = shift.lastHeartbeatAt || shift.startsAt;
-    const nextDue = new Date(lastHeartbeat.getTime() + shift.requiredCheckinIntervalMins * 60000);
-    const gracePeriodEnd = new Date(nextDue.getTime() + shift.graceMinutes * 60000);
-
-    // New: Validate check-in time window
-    if (now < nextDue) {
-      return NextResponse.json({ error: 'Too early to check in for this interval' }, { status: 400 });
-    }
-    if (now > gracePeriodEnd) {
+    // Fixed interval logic:
+    // Slot N starts at: startsAt + N * interval
+    // Check-in Window for Slot N: [SlotStart, SlotStart + grace]
+    
+    const nowMs = now.getTime();
+    const startMs = shift.startsAt.getTime();
+    const intervalMs = shift.requiredCheckinIntervalMins * 60000;
+    const graceMs = shift.graceMinutes * 60000;
+    
+    // Which slot are we in?
+    const currentSlotIndex = Math.floor((nowMs - startMs) / intervalMs);
+    const targetTime = new Date(startMs + currentSlotIndex * intervalMs);
+    const deadline = new Date(targetTime.getTime() + graceMs);
+    
+    // Validate Strict Window
+    // If now > deadline, we missed the window for this slot.
+    // And it is too early for the next slot.
+    if (now > deadline) {
       return NextResponse.json({ error: 'Too late to check in for this interval' }, { status: 400 });
     }
 
-    let status: 'on_time' | 'late' = 'on_time';
-    if (now > nextDue) {
-      // If check-in is after nextDue, it's late within the grace period
-      status = 'late';
+    // Check if we already checked in for this slot
+    // If lastHeartbeatAt >= targetTime, we have done this slot.
+    if (shift.lastHeartbeatAt && shift.lastHeartbeatAt.getTime() >= targetTime.getTime()) {
+        return NextResponse.json({ error: 'Already checked in for this interval' }, { status: 400 });
     }
+
+    const status: 'on_time' | 'late' = 'on_time'; // Always on_time if within the strict window
 
     // 4. Transaction: Insert Checkin, Update Shift, Resolve Alerts
     const result = await prisma.$transaction(async tx => {
@@ -112,18 +122,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
               resolvedAt: now,
               resolvedById: guardId, // Auto-resolved by guard action
             },
+            include: {
+                site: true,
+                shift: {
+                    include: {
+                        guard: true,
+                        shiftType: true
+                    }
+                }
+            }
           });
         }
       }
 
-      return { checkin, resolvedAlert: null }; // Removed alert resolution by guard
+      return { checkin, resolvedAlert };
     });
 
     // 5. Publish Realtime Events
-    // Removed alert resolution publishing here, as guards no longer resolve alerts
+    if (result.resolvedAlert) {
+         const payload = {
+            type: 'alert_updated',
+            alert: result.resolvedAlert,
+         };
+         await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
+    }
 
     // Calculate next due for response
-    const nextDueAfterCheckin = new Date(now.getTime() + shift.requiredCheckinIntervalMins * 60000);
+    // Next due is the START of the NEXT slot
+    const nextDueAfterCheckin = new Date(startMs + (currentSlotIndex + 1) * intervalMs);
 
     return NextResponse.json({
       checkin: result.checkin,

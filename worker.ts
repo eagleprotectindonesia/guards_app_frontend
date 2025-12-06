@@ -41,73 +41,102 @@ async function runWorker() {
 
       for (const shift of shifts) {
         // --- ALERT LOGIC START ---
-        // last = COALESCE(last_heartbeat_at, starts_at)
-        const lastHeartbeat = shift.lastHeartbeatAt || shift.startsAt;
+        // Fixed interval logic:
+        // Interval 0: [start, start + interval)
+        // Interval N: [start + N*interval, start + (N+1)*interval)
+        // Check-in window for Interval N: [start + N*interval, start + N*interval + grace]
+        // Deadline: start + N*interval + grace
+        
+        const nowMs = now.getTime();
+        const startMs = shift.startsAt.getTime();
         const intervalMs = shift.requiredCheckinIntervalMins * 60000;
         const graceMs = shift.graceMinutes * 60000;
 
-        const due = new Date(lastHeartbeat.getTime() + intervalMs);
-        const deadline = new Date(due.getTime() + graceMs);
+        // Calculate how many full intervals have passed since start
+        // e.g. Start 8:00, Now 8:35, Interval 30. Diff 35. 35/30 = 1.16. Floor = 1.
+        // We are currently in Interval 1 (8:30 - 9:00).
+        // But we check for MISSED checkins in the PAST.
+        // If we are in Interval 1, we should check if we missed Interval 1's deadline?
+        // Or did we miss Interval 0?
+        
+        // Actually, we want to find the "Current Due Time" that might have been missed.
+        // The LATEST deadline that has passed is for the interval index:
+        // index = floor((now - start - grace) / interval)
+        // If now is 8:35 (Grace 2). 8:35 - 8:00 - 0:02 = 33m. 33/30 = 1.
+        // So Interval 1 (8:30) deadline (8:32) has passed.
+        
+        const elapsedSinceStart = nowMs - startMs;
+        // We care about the latest interval whose deadline has passed
+        const passedIntervalIndex = Math.floor((elapsedSinceStart - graceMs) / intervalMs);
 
-        if (now > deadline) {
-          // Check if alert exists for this due time
-          const existingAlert = await prisma.alert.findUnique({
-            where: {
-              shiftId_reason_windowStart: {
-                shiftId: shift.id,
-                reason: 'missed_checkin',
-                windowStart: due,
-              },
-            },
-          });
+        if (passedIntervalIndex >= 0) {
+           const dueTime = new Date(startMs + passedIntervalIndex * intervalMs);
+           
+           // Check if we have a valid heartbeat for THIS interval
+           // valid if lastHeartbeat >= dueTime
+           const lastHeartbeat = shift.lastHeartbeatAt;
+           const hasCheckedInForSlot = lastHeartbeat && lastHeartbeat.getTime() >= dueTime.getTime();
 
-          if (!existingAlert) {
-            console.log(`Detected missed checkin for shift ${shift.id} (Guard: ${shift.guard?.name})`);
+           if (!hasCheckedInForSlot) {
+                // Check if alert exists for this due time
+                const existingAlert = await prisma.alert.findUnique({
+                    where: {
+                    shiftId_reason_windowStart: {
+                        shiftId: shift.id,
+                        reason: 'missed_checkin',
+                        windowStart: dueTime,
+                    },
+                    },
+                });
 
-            // Create Alert & Update Shift
-            await prisma.$transaction(async tx => {
-              const newAlert = await tx.alert.create({
-                data: {
-                  shiftId: shift.id,
-                  siteId: shift.siteId,
-                  reason: 'missed_checkin',
-                  severity: 'warning',
-                  windowStart: due,
-                },
-              });
+                if (!existingAlert) {
+                    console.log(`Detected missed checkin for shift ${shift.id} (Guard: ${shift.guard?.name}) at ${dueTime.toISOString()}`);
 
-              await tx.shift.update({
-                where: { id: shift.id },
-                data: {
-                  missedCount: { increment: 1 },
-                },
-              });
+                    // Create Alert & Update Shift
+                    await prisma.$transaction(async tx => {
+                    const newAlert = await tx.alert.create({
+                        data: {
+                        shiftId: shift.id,
+                        siteId: shift.siteId,
+                        reason: 'missed_checkin',
+                        severity: 'warning',
+                        windowStart: dueTime,
+                        },
+                    });
 
-              // Fetch full alert data for broadcast
-              const alert = await tx.alert.findUnique({
-                where: { id: newAlert.id },
-                include: {
-                  site: true,
-                  shift: {
-                    include: {
-                      guard: true,
-                      shiftType: true,
-                    }
-                  }
+                    await tx.shift.update({
+                        where: { id: shift.id },
+                        data: {
+                        missedCount: { increment: 1 },
+                        },
+                    });
+
+                    // Fetch full alert data for broadcast
+                    const alert = await tx.alert.findUnique({
+                        where: { id: newAlert.id },
+                        include: {
+                        site: true,
+                        shift: {
+                            include: {
+                            guard: true,
+                            shiftType: true,
+                            }
+                        }
+                        }
+                    });
+
+                    // Publish Event
+                    const payload = {
+                        type: 'alert_created',
+                        alert,
+                    };
+                    await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
+
+                    // TODO: Send Notifications (SES/SNS/Slack)
+                    console.log(`[MOCK] Sending notification for alert ${newAlert.id}`);
+                    });
                 }
-              });
-
-              // Publish Event
-              const payload = {
-                type: 'alert_created',
-                alert,
-              };
-              await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
-
-              // TODO: Send Notifications (SES/SNS/Slack)
-              console.log(`[MOCK] Sending notification for alert ${newAlert.id}`);
-            });
-          }
+           }
         }
         // --- ALERT LOGIC END ---
 

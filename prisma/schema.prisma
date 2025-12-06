@@ -122,6 +122,8 @@ model Alert {
   acknowledgedById String?       @map("acknowledged_by_id")
   resolvedAt       DateTime?     @map("resolved_at") @db.Timestamptz(6)
   resolvedById     String?       @map("resolved_by_id")
+  resolutionNote   String?       @map("resolution_note")
+  resolutionType   AlertResolution? @map("resolution_type")
   ackAdmin         Admin?        @relation("AcknowledgedBy", fields: [acknowledgedById], references: [id])
   resolverAdmin    Admin?        @relation("ResolvedBy", fields: [resolvedById], references: [id])
   shift            Shift         @relation(fields: [shiftId], references: [id])
@@ -152,4 +154,10 @@ enum AlertReason {
 enum AlertSeverity {
   warning
   critical
+}
+
+enum AlertResolution {
+  standard
+  forgiven
+  auto
 }

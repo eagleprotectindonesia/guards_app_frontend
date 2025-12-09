@@ -11,9 +11,10 @@ interface AttendanceRecordProps {
   onAttendanceRecorded: () => void;
   status: string; // Current status of the shift, e.g., 'active', 'pending attendance', etc.
   setStatus: (status: string) => void;
+  currentTime?: Date; // Optional for backward compatibility, but recommended
 }
 
-export function AttendanceRecord({ shift, onAttendanceRecorded, status, setStatus }: AttendanceRecordProps) {
+export function AttendanceRecord({ shift, onAttendanceRecorded, status, setStatus, currentTime }: AttendanceRecordProps) {
   const { fetchWithAuth } = useGuardApi();
   const [isRecording, setIsRecording] = useState(false);
   const [message, setMessage] = useState('');
@@ -54,13 +55,22 @@ export function AttendanceRecord({ shift, onAttendanceRecorded, status, setStatu
   const hasAttendance = !!shift.attendance;
   const canRecordAttendance = !hasAttendance;
 
+  // Calculate late status
+  const ATTENDANCE_GRACE_MINS = 5;
+  const now = currentTime || new Date();
+  const startMs = new Date(shift.startsAt).getTime();
+  const graceEndMs = startMs + ATTENDANCE_GRACE_MINS * 60000;
+  const isLate = !hasAttendance && now.getTime() > graceEndMs;
+
   return (
-    <div className="p-4 border rounded-lg shadow-sm bg-white mb-4">
+    <div className={`p-4 border rounded-lg shadow-sm mb-4 ${isLate ? 'bg-red-50 border-red-200' : 'bg-white'}`}>
       <h3 className="text-lg font-semibold mb-2">Attendance Status</h3>
       {hasAttendance ? (
         <p className="text-green-600 font-medium">
           Attendance recorded at {format(new Date(shift.attendance!.recordedAt), 'MM/dd/yyyy HH:mm')}
         </p>
+      ) : isLate ? (
+        <p className="text-red-600 font-bold">Attendance Missing</p>
       ) : (
         <p className="text-red-500 font-medium">Please record your attendance to start the shift.</p>
       )}
@@ -69,7 +79,7 @@ export function AttendanceRecord({ shift, onAttendanceRecorded, status, setStatu
         <p className={`mt-2 text-sm ${messageType === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message}</p>
       )}
 
-      {!hasAttendance && (
+      {!hasAttendance && !isLate && (
         <>
           <Button
             onClick={handleRecordAttendance}
@@ -82,6 +92,12 @@ export function AttendanceRecord({ shift, onAttendanceRecorded, status, setStatu
             <p className="text-sm text-gray-500 mt-2">Attendance has already been recorded for this shift.</p>
           )}
         </>
+      )}
+
+      {isLate && !hasAttendance && (
+        <p className="text-red-600 mt-2 font-medium">
+          Attendance window missed. Please contact your administrator.
+        </p>
       )}
     </div>
   );

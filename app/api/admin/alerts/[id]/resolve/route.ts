@@ -35,7 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     if (outcome === 'forgive') {
-        // FORGIVE: Soft Delete (Mark as forgiven) and decrement missed count
+        // FORGIVE: Soft Delete (Mark as forgiven)
         const updatedAlert = await prisma.$transaction(async tx => {
             const a = await tx.alert.update({ 
                 where: { id },
@@ -48,15 +48,44 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                 include: { shift: true }
             });
             
-            // Only decrement if > 0
-            if (alert.shift.missedCount > 0) {
-                 await tx.shift.update({
-                    where: { id: alert.shiftId },
-                    data: {
-                        missedCount: { decrement: 1 }
-                    }
+            if (alert.reason === 'missed_checkin') {
+                // For missed checkin, we decrement the missed count as it was incremented on alert creation
+                if (alert.shift.missedCount > 0) {
+                     await tx.shift.update({
+                        where: { id: alert.shiftId },
+                        data: {
+                            missedCount: { decrement: 1 }
+                        }
+                    });
+                }
+            } else if (alert.reason === 'missed_attendance') {
+                // For missed attendance, we record the attendance as 'late'
+                // Check if attendance already exists
+                const existingAttendance = await tx.attendance.findUnique({
+                    where: { shiftId: alert.shiftId }
                 });
+
+                if (!existingAttendance) {
+                    const newAttendance = await tx.attendance.create({
+                        data: {
+                            shiftId: alert.shiftId,
+                            recordedAt: new Date(),
+                            status: 'late',
+                            metadata: { note: 'Auto-created via alert forgiveness' },
+                        }
+                    });
+
+                    // Update shift to connect attendance and set status to in_progress if needed
+                    await tx.shift.update({
+                        where: { id: alert.shiftId },
+                        data: {
+                            attendance: { connect: { id: newAttendance.id } },
+                            status: alert.shift.status === 'scheduled' ? 'in_progress' : undefined
+                        }
+                    });
+                }
             }
+            
             return a;
         });
 
@@ -70,21 +99,50 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         return NextResponse.json({ success: true, outcome: 'forgive', alert: updatedAlert });
     } else {
         // RESOLVE: Mark as resolved (standard)
-        const updatedAlert = await prisma.alert.update({
-        where: { id },
-        data: {
-            resolvedAt: new Date(),
-            resolvedById: adminId,
-            resolutionType: 'standard',
-            resolutionNote: note,
-        },
-        include: { shift: true }, // Include shift to get necessary data for SSE payload
+        const updatedAlert = await prisma.$transaction(async tx => {
+            const a = await tx.alert.update({
+                where: { id },
+                data: {
+                    resolvedAt: new Date(),
+                    resolvedById: adminId,
+                    resolutionType: 'standard',
+                    resolutionNote: note,
+                },
+                include: { shift: true },
+            });
+
+            if (alert.reason === 'missed_attendance') {
+                // If missed attendance is resolved without forgiveness, it means they are absent.
+                const existingAttendance = await tx.attendance.findUnique({
+                    where: { shiftId: alert.shiftId }
+                });
+
+                if (!existingAttendance) {
+                    await tx.attendance.create({
+                        data: {
+                            shiftId: alert.shiftId,
+                            recordedAt: new Date(),
+                            status: 'absent',
+                            metadata: { note: 'Auto-created via alert resolution (absent)' },
+                        }
+                    });
+
+                    // Also mark shift as missed to stop check-in alerts
+                    await tx.shift.update({
+                        where: { id: alert.shiftId },
+                        data: {
+                            status: 'missed'
+                        }
+                    });
+                }
+            }
+            return a;
         });
 
         // Publish update
         const payload = {
-        type: 'alert_updated',
-        alert: updatedAlert,
+            type: 'alert_updated',
+            alert: updatedAlert,
         };
         await redis.publish(`alerts:site:${updatedAlert.siteId}`, JSON.stringify(payload));
 

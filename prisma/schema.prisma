@@ -158,6 +158,7 @@ enum CheckInStatus {
 
 enum AlertReason {
   missed_checkin
+  missed_attendance
 }
 
 enum AlertSeverity {

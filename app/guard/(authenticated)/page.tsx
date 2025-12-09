@@ -163,17 +163,25 @@ export default function GuardPage() {
             onAttendanceRecorded={fetchShift}
             status={status}
             setStatus={setStatus}
+            currentTime={currentTime}
           />
-          {activeShift.attendance && (
-            <ShiftDetails
-              activeShift={activeShift}
-              loading={loading}
-              status={status}
-              currentTime={currentTime}
-              setStatus={setStatus}
-              fetchShift={fetchShift}
-            />
-          )}
+          {(() => {
+            const ATTENDANCE_GRACE_MINS = 5;
+            const startMs = new Date(activeShift.startsAt).getTime();
+            const graceEndMs = startMs + ATTENDANCE_GRACE_MINS * 60000;
+            const isAttendanceLate = !activeShift.attendance && currentTime.getTime() > graceEndMs;
+
+            return (activeShift.attendance || isAttendanceLate) ? (
+              <ShiftDetails
+                activeShift={activeShift}
+                loading={loading}
+                status={status}
+                currentTime={currentTime}
+                setStatus={setStatus}
+                fetchShift={fetchShift}
+              />
+            ) : null;
+          })()}
         </>
       )}
 

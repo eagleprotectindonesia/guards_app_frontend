@@ -4,7 +4,7 @@ import { Serialized } from '@/lib/utils';
 import { createSite, updateSite, ActionState } from '../actions';
 import { useActionState, useEffect, useState, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { APIProvider, Map, AdvancedMarker, Pin, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, Marker, useMapsLibrary, MapMouseEvent, MapControl, ControlPosition } from '@vis.gl/react-google-maps';
 import { Site } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 
@@ -13,43 +13,93 @@ type Props = {
 };
 
 // MapComponent handles the Google Map rendering and interactions
-function MapComponent({ initialPosition, onPlaceSelect, initialAddress }: { initialPosition: { lat: number; lng: number; }; onPlaceSelect: (address: string, lat: number, lng: number) => void; initialAddress: string | null; }) {
+function MapComponent({
+  initialPosition,
+  onPlaceSelect,
+  initialAddress,
+}: {
+  initialPosition: { lat: number; lng: number };
+  onPlaceSelect: (address: string, lat: number, lng: number) => void;
+  initialAddress: string | null;
+}) {
   const [markerPosition, setMarkerPosition] = useState(initialPosition);
   const [address, setAddress] = useState(initialAddress);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const places = useMapsLibrary('places'); // Load places library
+  const geocodingLib = useMapsLibrary('geocoding');
+  const placesLib = useMapsLibrary('places');
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  // Initialize Autocomplete and Listener
   useEffect(() => {
-    if (initialPosition) {
-      setMarkerPosition(initialPosition);
-      setAddress(initialAddress);
-    }
-  }, [initialPosition, initialAddress]);
+    if (!placesLib || !inputRef.current) return;
 
-  const geocodeLatLng = useCallback(async (latLng: google.maps.LatLngLiteral) => {
-    if (!places) return;
-    const geocoder = new (places as any).Geocoder(); // Using 'any' due to PlacesLibrary type issue
-    try {
-      const response = await geocoder.geocode({ location: latLng });
-      if (response.results[0]) {
-        const newAddress = response.results[0].formatted_address;
+    const autocomplete = new placesLib.Autocomplete(inputRef.current, {
+      fields: ['geometry', 'formatted_address', 'name'],
+      types: ['establishment', 'geocode'],
+    });
+
+    const listener = autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (place.geometry?.location) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const newAddress = place.formatted_address || place.name || '';
+        
+        console.log('Place selected:', { lat, lng, newAddress }); // Debug log
+
+        setMarkerPosition({ lat, lng });
         setAddress(newAddress);
-        onPlaceSelect(newAddress, latLng.lat, latLng.lng);
-      }
-    } catch (error) {
-      console.error('Geocoder failed due to:', error);
-      setAddress('');
-      onPlaceSelect('', latLng.lat, latLng.lng); // Still update lat/lng even if address fails
-    }
-  }, [places, onPlaceSelect]);
+        onPlaceSelect(newAddress, lat, lng);
 
-  const onMapClick = useCallback((event: google.maps.MapMouseEvent) => {
-    if (event.latLng) {
-      const newPos = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-      setMarkerPosition(newPos);
-      geocodeLatLng(newPos);
-    }
-  }, [geocodeLatLng]);
+        if (mapRef.current) {
+          mapRef.current.panTo({ lat, lng });
+          mapRef.current.setZoom(17);
+        } else {
+            console.warn('Map reference is missing, cannot pan.');
+        }
+      }
+    });
+
+    return () => {
+      google.maps.event.removeListener(listener);
+      // Clean up autocomplete instance if needed, though usually just removing listener is enough for this scope
+    };
+  }, [placesLib, onPlaceSelect]);
+
+  const geocodeLatLng = useCallback(
+    async (latLng: google.maps.LatLngLiteral) => {
+      if (!geocodingLib) return;
+      const geocoder = new geocodingLib.Geocoder();
+      try {
+        const response = await geocoder.geocode({ location: latLng });
+        if (response.results[0]) {
+          const newAddress = response.results[0].formatted_address;
+          setAddress(newAddress);
+          onPlaceSelect(newAddress, latLng.lat, latLng.lng);
+          if (inputRef.current) {
+             inputRef.current.value = newAddress;
+          }
+        }
+      } catch (error) {
+        console.error('Geocoder failed due to:', error);
+        setAddress('');
+        onPlaceSelect('', latLng.lat, latLng.lng); // Still update lat/lng even if address fails
+      }
+    },
+    [geocodingLib, onPlaceSelect]
+  );
+
+  const onMapClick = useCallback(
+    (event: MapMouseEvent) => {
+      console.log(event);
+      if (event.detail.latLng) {
+        const newPos = { lat: event.detail.latLng.lat, lng: event.detail.latLng.lng };
+        setMarkerPosition(newPos);
+        geocodeLatLng(newPos);
+      }
+    },
+    [geocodeLatLng]
+  );
 
   return (
     <div className="h-96 w-full relative mb-4 rounded-lg overflow-hidden border border-gray-200">
@@ -57,13 +107,21 @@ function MapComponent({ initialPosition, onPlaceSelect, initialAddress }: { init
         ref={mapRef}
         center={markerPosition}
         zoom={10}
-        mapId={'YOUR_MAP_ID'} // Replace with your Map ID
         onClick={onMapClick}
         style={{ width: '100%', height: '100%' }}
+        gestureHandling={'cooperative'}
       >
-        <AdvancedMarker position={markerPosition}>
-          <Pin background={'#FBBC04'} glyphColor={'#000'} borderColor={'#000'} />
-        </AdvancedMarker>
+        <MapControl position={ControlPosition.TOP_LEFT}>
+          <div className="p-2 w-full max-w-sm">
+             <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search for a location..."
+              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+            />
+          </div>
+        </MapControl>
+        <Marker position={markerPosition} />
       </Map>
       <input type="hidden" name="address" value={address || ''} />
       <input type="hidden" name="latitude" value={markerPosition?.lat || ''} />
@@ -71,7 +129,6 @@ function MapComponent({ initialPosition, onPlaceSelect, initialAddress }: { init
     </div>
   );
 }
-
 
 export default function SiteForm({ site }: Props) {
   const router = useRouter();
@@ -140,9 +197,7 @@ export default function SiteForm({ site }: Props) {
 
         {/* Map Integration */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Site Location
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Site Location</label>
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
               <MapComponent

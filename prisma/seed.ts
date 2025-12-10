@@ -40,6 +40,7 @@ async function main() {
       name: 'Jackie Chan',
       phone: '+15551234567', // Ensure unique phone number
       hashedPassword: hashedGuardPassword,
+      guardCode: '00001',
     },
   });
   console.log('Created Guard 1:', guard1.id);
@@ -49,6 +50,7 @@ async function main() {
       name: 'Bruce Lee',
       phone: '+15551234568', // Ensure unique phone number
       hashedPassword: hashedGuardPassword,
+      guardCode: '00002',
     },
   });
   console.log('Created Guard 2:', guard2.id);
@@ -58,6 +60,7 @@ async function main() {
       name: 'Chuck Norris',
       phone: '+15551234569', // Ensure unique phone number
       hashedPassword: hashedGuardPassword,
+      guardCode: '00003',
     },
   });
   console.log('Created Guard 3:', guard3.id);

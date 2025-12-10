@@ -5,6 +5,7 @@ import { Shift, Site, ShiftType, Guard, Attendance } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
 import { deleteShift } from '../actions';
 import ShiftFilterModal from './shift-filter-modal';
+import BulkCreateModal from './bulk-create-modal';
 import ConfirmDialog from '../../components/confirm-dialog';
 import { DeleteButton } from '../../components/action-buttons';
 import PaginationNav from '../../components/pagination-nav';
@@ -12,7 +13,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Pencil } from 'lucide-react';
+import { Pencil, Upload } from 'lucide-react';
 
 export type ShiftWithRelations = Shift & {
   site: Site;
@@ -52,6 +53,7 @@ export default function ShiftList({
   const searchParams = useSearchParams();
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isBulkCreateOpen, setIsBulkCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -150,6 +152,13 @@ export default function ShiftList({
                 {activeFiltersCount}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setIsBulkCreateOpen(true)}
+            className="inline-flex items-center justify-center h-10 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Import CSV
           </button>
           <Link
             href="/admin/shifts/create"
@@ -274,6 +283,11 @@ export default function ShiftList({
           guards={guards}
         />
       )}
+
+      <BulkCreateModal
+        isOpen={isBulkCreateOpen}
+        onClose={() => setIsBulkCreateOpen(false)}
+      />
 
       <ConfirmDialog
         isOpen={!!deleteId}

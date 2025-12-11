@@ -8,6 +8,8 @@ import { Guard } from '@prisma/client';
 import DatePicker from 'react-datepicker';
 import { useRouter } from 'next/navigation';
 import { PasswordInput } from '@/components/ui/password-input';
+import PhoneInput from '@/components/ui/phone-input'; // Import the new PhoneInput component
+import { E164Number } from 'libphonenumber-js';
 
 type Props = {
   guard?: Serialized<Guard>; // If provided, it's an edit form
@@ -58,12 +60,10 @@ export default function GuardForm({ guard }: Props) {
             <label htmlFor="phone" className="block font-medium text-gray-700 mb-1">
               Phone Number
             </label>
-            <input
-              type="tel"
-              name="phone"
+            <PhoneInput
+              inputName="phone"
               id="phone"
-              defaultValue={guard?.phone || ''}
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+              defaultValue={(guard?.phone || '') as E164Number}
               placeholder="e.g. +15550123456"
             />
             {state.errors?.phone && <p className="text-red-500 text-xs mt-1">{state.errors.phone[0]}</p>}

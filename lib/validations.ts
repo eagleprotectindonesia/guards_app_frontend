@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidPhoneNumber, parsePhoneNumberWithError } from 'libphonenumber-js';
 
 export const ShiftStatusEnum = z.enum(['scheduled', 'in_progress', 'completed', 'missed']);
 
@@ -29,7 +30,31 @@ export const updateAdminSchema = z.object({
 // --- Guard ---
 export const createGuardSchema = z.object({
   name: z.string().min(1),
-  phone: z.string().min(1), // Simple validation, can be enhanced with regex
+  phone: z
+    .string()
+    .min(1, 'Phone number is required')
+    .max(17, 'Phone number is too long')
+    .refine(
+      value => {
+        return isValidPhoneNumber(value);
+      },
+      {
+        message: 'Invalid phone number format',
+      }
+    )
+    .refine(
+      value => {
+        try {
+          const phoneNumber = parsePhoneNumberWithError(value);
+          return phoneNumber && phoneNumber.nationalNumber.length >= 7;
+        } catch {
+          return false; // Parsing failed, so it's not a valid phone number for our length check
+        }
+      },
+      {
+        message: 'Phone number is too short',
+      }
+    ),
   guardCode: z.string().max(10).optional(),
   status: z.boolean().optional(),
   joinDate: z.string().datetime().optional(),
@@ -40,7 +65,31 @@ export const createGuardSchema = z.object({
 
 export const updateGuardSchema = z.object({
   name: z.string().min(1),
-  phone: z.string().min(1), // Simple validation, can be enhanced with regex
+  phone: z
+    .string()
+    .min(1, 'Phone number is required')
+    .max(17, 'Phone number is too long')
+    .refine(
+      value => {
+        return isValidPhoneNumber(value);
+      },
+      {
+        message: 'Invalid phone number format',
+      }
+    )
+    .refine(
+      value => {
+        try {
+          const phoneNumber = parsePhoneNumberWithError(value);
+          return phoneNumber && phoneNumber.nationalNumber.length >= 7;
+        } catch {
+          return false; // Parsing failed, so it's not a valid phone number for our length check
+        }
+      },
+      {
+        message: 'Phone number is too short',
+      }
+    ),
   guardCode: z.string().max(10).optional(),
   status: z.boolean().optional(),
   joinDate: z.string().datetime().optional(),

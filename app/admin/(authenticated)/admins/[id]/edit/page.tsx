@@ -20,7 +20,7 @@ export default async function EditAdminPage(props: EditAdminPageProps) {
   const serializedAdmin = serialize(admin);
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
+    <div className="max-w-6xl mx-auto py-8">
       <AdminForm admin={serializedAdmin} />
     </div>
   );

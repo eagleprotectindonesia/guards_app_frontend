@@ -33,13 +33,10 @@ export default function ShiftFilterModal({ isOpen, onClose, onApply, initialFilt
   const [siteId, setSiteId] = useState<string>(initialFilters.siteId || '');
   const [guardId, setGuardId] = useState<string>(initialFilters.guardId || '');
 
-  const siteOptions = [
-    { value: '', label: 'All Sites' },
-    ...sites.map(site => ({ value: site.id, label: site.name }))
-  ];
+  const siteOptions = [{ value: '', label: 'All Sites' }, ...sites.map(site => ({ value: site.id, label: site.name }))];
   const guardOptions = [
     { value: '', label: 'All Guards' },
-    ...guards.map(guard => ({ value: guard.id, label: guard.name }))
+    ...guards.map(guard => ({ value: guard.id, label: guard.name })),
   ];
 
   const handleApply = () => {
@@ -136,14 +133,14 @@ export default function ShiftFilterModal({ isOpen, onClose, onApply, initialFilt
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleApply}
-              className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-colors shadow-sm"
+              className="px-4 py-2 rounded-lg bg-gray-900 text-white font-bold text-sm hover:bg-gray-800 transition-colors shadow-sm"
             >
               Apply Filters
             </button>

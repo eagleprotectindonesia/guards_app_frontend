@@ -46,12 +46,12 @@ export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
   }));
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{shift ? 'Edit Shift' : 'Schedule New Shift'}</h1>
-      <form action={formAction} className="space-y-6">
+      <form action={formAction} className="space-y-8">
         {/* Site Field */}
         <div>
-          <label htmlFor="siteId" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="siteId" className="block font-medium text-gray-700 mb-1">
             Site
           </label>
           <Select
@@ -69,7 +69,7 @@ export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
 
         {/* Shift Type Field */}
         <div>
-          <label htmlFor="shiftTypeId" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="shiftTypeId" className="block font-medium text-gray-700 mb-1">
             Shift Type
           </label>
           <Select
@@ -88,7 +88,7 @@ export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
 
         {/* Guard Field */}
         <div>
-          <label htmlFor="guardId" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="guardId" className="block font-medium text-gray-700 mb-1">
             Guard
           </label>
           <Select
@@ -105,7 +105,7 @@ export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
 
         {/* Date Field */}
         <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="date" className="block font-medium text-gray-700 mb-1">
             Date
           </label>
           {/* Hidden input for formatted date string YYYY-MM-DD */}
@@ -123,7 +123,7 @@ export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
         {/* Config Fields */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="requiredCheckinIntervalMins" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="requiredCheckinIntervalMins" className="block font-medium text-gray-700 mb-1">
               Interval (min)
             </label>
             <input
@@ -140,7 +140,7 @@ export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
           </div>
 
           <div>
-            <label htmlFor="graceMinutes" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="graceMinutes" className="block font-medium text-gray-700 mb-1">
               Grace Period (min)
             </label>
             <input
@@ -165,14 +165,14 @@ export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
           <button
             type="button"
             onClick={() => router.push('/admin/shifts')}
-            className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+            className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="px-6 py-2.5 rounded-lg bg-red-500 text-white font-semibold text-sm hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-500/30"
+            className="px-6 py-2.5 rounded-lg bg-red-500 text-white font-bold text-sm hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-500/30"
           >
             {isPending ? 'Saving...' : shift ? 'Save Changes' : 'Schedule Shift'}
           </button>

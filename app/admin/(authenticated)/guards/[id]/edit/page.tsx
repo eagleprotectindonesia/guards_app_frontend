@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 
 export default async function EditGuardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  
+
   const guard = await prisma.guard.findUnique({
     where: { id },
   });
@@ -17,7 +17,7 @@ export default async function EditGuardPage({ params }: { params: Promise<{ id: 
   const serializedGuard = serialize(guard);
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
+    <div className="max-w-6xl mx-auto py-8">
       <GuardForm guard={serializedGuard} />
     </div>
   );

@@ -17,7 +17,7 @@ export default async function EditSitePage({ params }: { params: Promise<{ id: s
   const serializedSite = serialize(site);
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
+    <div className="max-w-6xl mx-auto py-8">
       <SiteForm site={serializedSite} />
     </div>
   );

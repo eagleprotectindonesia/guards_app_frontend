@@ -32,13 +32,13 @@ export default function GuardForm({ guard }: Props) {
   }, [state, guard, router]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{guard ? 'Edit Guard' : 'Add New Guard'}</h1>
       <form action={formAction} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Name Field */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="name" className="block font-medium text-gray-700 mb-1">
               Full Name
             </label>
             <input
@@ -54,7 +54,7 @@ export default function GuardForm({ guard }: Props) {
 
           {/* Phone Field */}
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="phone" className="block font-medium text-gray-700 mb-1">
               Phone Number
             </label>
             <input
@@ -70,7 +70,7 @@ export default function GuardForm({ guard }: Props) {
 
           {/* Guard Code Field */}
           <div>
-            <label htmlFor="guardCode" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="guardCode" className="block font-medium text-gray-700 mb-1">
               Guard Code
             </label>
             <input
@@ -85,7 +85,7 @@ export default function GuardForm({ guard }: Props) {
 
           {/* Status Field */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="status" className="block font-medium text-gray-700 mb-1">
               Status
             </label>
             <div className="flex items-center space-x-4 h-10">
@@ -114,7 +114,7 @@ export default function GuardForm({ guard }: Props) {
 
           {/* Join Date Field */}
           <div>
-            <label htmlFor="joinDate" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="joinDate" className="block font-medium text-gray-700 mb-1">
               Join Date
             </label>
             <input type="hidden" name="joinDate" value={joinDate?.toISOString() || ''} />
@@ -131,7 +131,7 @@ export default function GuardForm({ guard }: Props) {
 
           {/* Left Date Field */}
           <div>
-            <label htmlFor="leftDate" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="leftDate" className="block font-medium text-gray-700 mb-1">
               Left Date
             </label>
             <input type="hidden" name="leftDate" value={leftDate?.toISOString() || ''} />
@@ -149,7 +149,7 @@ export default function GuardForm({ guard }: Props) {
           {/* Password Field - Only show for creation, not editing */}
           {!guard && (
             <div className="md:col-span-2">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block font-medium text-gray-700 mb-1">
                 Password
               </label>
               <input
@@ -166,7 +166,7 @@ export default function GuardForm({ guard }: Props) {
 
           {/* Note Field */}
           <div className="md:col-span-2">
-            <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="note" className="block font-medium text-gray-700 mb-1">
               Note
             </label>
             <textarea
@@ -190,14 +190,14 @@ export default function GuardForm({ guard }: Props) {
           <button
             type="button"
             onClick={() => router.push('/admin/guards')}
-            className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+            className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="px-6 py-2.5 rounded-lg bg-red-500 text-white font-semibold text-sm hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-500/30"
+            className="px-6 py-2.5 rounded-lg bg-red-500 text-white font-bold text-sm hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-500/30"
           >
             {isPending ? 'Saving...' : guard ? 'Save Changes' : 'Create Guard'}
           </button>

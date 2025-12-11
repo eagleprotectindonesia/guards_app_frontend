@@ -13,7 +13,7 @@ export default async function CreateShiftPage() {
   ]);
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
+    <div className="max-w-6xl mx-auto py-8">
       <ShiftForm sites={serialize(sites)} shiftTypes={serialize(shiftTypes)} guards={serialize(guards)} />
     </div>
   );

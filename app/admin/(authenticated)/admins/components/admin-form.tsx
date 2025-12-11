@@ -28,12 +28,12 @@ export default function AdminForm({ admin }: Props) {
   }, [state, admin, router]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{admin ? 'Edit Admin' : 'Add New Admin'}</h1>
       <form action={formAction} className="space-y-6">
         {/* Name Field */}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="name" className="block font-medium text-gray-700 mb-1">
             Name
           </label>
           <input
@@ -49,7 +49,7 @@ export default function AdminForm({ admin }: Props) {
 
         {/* Email Field */}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="email" className="block font-medium text-gray-700 mb-1">
             Email
           </label>
           <input
@@ -65,24 +65,24 @@ export default function AdminForm({ admin }: Props) {
 
         {/* Role Field */}
         <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                Role
-            </label>
-            <select
-                name="role"
-                id="role"
-                defaultValue={(admin as any)?.role || 'admin'}
-                className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white"
-            >
-                <option value="admin">Admin</option>
-                <option value="superadmin">Super Admin</option>
-            </select>
-            {state.errors?.role && <p className="text-red-500 text-xs mt-1">{state.errors.role[0]}</p>}
+          <label htmlFor="role" className="block font-medium text-gray-700 mb-1">
+            Role
+          </label>
+          <select
+            name="role"
+            id="role"
+            defaultValue={admin?.role || 'admin'}
+            className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white"
+          >
+            <option value="admin">Admin</option>
+            <option value="superadmin">Super Admin</option>
+          </select>
+          {state.errors?.role && <p className="text-red-500 text-xs mt-1">{state.errors.role[0]}</p>}
         </div>
 
         {/* Password Field */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="password" className="block font-medium text-gray-700 mb-1">
             {admin ? 'New Password (Optional)' : 'Password'}
           </label>
           <input
@@ -105,14 +105,14 @@ export default function AdminForm({ admin }: Props) {
           <button
             type="button"
             onClick={() => router.push('/admin/admins')}
-            className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+            className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 fontbold text-sm hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-600/30"
+            className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-600/30"
           >
             {isPending ? 'Saving...' : admin ? 'Save Changes' : 'Add Admin'}
           </button>

@@ -4,7 +4,15 @@ import { Serialized } from '@/lib/utils';
 import { createSite, updateSite, ActionState } from '../actions';
 import { useActionState, useEffect, useState, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { APIProvider, Map, Marker, useMapsLibrary, MapMouseEvent, MapControl, ControlPosition } from '@vis.gl/react-google-maps';
+import {
+  APIProvider,
+  Map,
+  Marker,
+  useMapsLibrary,
+  MapMouseEvent,
+  MapControl,
+  ControlPosition,
+} from '@vis.gl/react-google-maps';
 import { Site } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 
@@ -44,7 +52,7 @@ function MapComponent({
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
         const newAddress = place.formatted_address || place.name || '';
-        
+
         console.log('Place selected:', { lat, lng, newAddress }); // Debug log
 
         setMarkerPosition({ lat, lng });
@@ -55,7 +63,7 @@ function MapComponent({
           mapRef.current.panTo({ lat, lng });
           mapRef.current.setZoom(17);
         } else {
-            console.warn('Map reference is missing, cannot pan.');
+          console.warn('Map reference is missing, cannot pan.');
         }
       }
     });
@@ -77,7 +85,7 @@ function MapComponent({
           setAddress(newAddress);
           onPlaceSelect(newAddress, latLng.lat, latLng.lng);
           if (inputRef.current) {
-             inputRef.current.value = newAddress;
+            inputRef.current.value = newAddress;
           }
         }
       } catch (error) {
@@ -113,7 +121,7 @@ function MapComponent({
       >
         <MapControl position={ControlPosition.TOP_LEFT}>
           <div className="p-2 w-full max-w-sm">
-             <input
+            <input
               ref={inputRef}
               type="text"
               placeholder="Search for a location..."
@@ -158,13 +166,13 @@ export default function SiteForm({ site }: Props) {
   }, []);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{site ? 'Edit Site' : 'Create New Site'}</h1>
       <form action={formAction} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Name Field */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="name" className="block font-medium text-gray-700 mb-1">
               Site Name
             </label>
             <input
@@ -180,7 +188,7 @@ export default function SiteForm({ site }: Props) {
 
           {/* Client Name Field */}
           <div>
-            <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="clientName" className="block font-medium text-gray-700 mb-1">
               Client Name
             </label>
             <input
@@ -197,7 +205,7 @@ export default function SiteForm({ site }: Props) {
 
         {/* Map Integration */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Site Location</label>
+          <label className="block font-medium text-gray-700 mb-2">Site Location</label>
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
               <MapComponent
@@ -225,14 +233,14 @@ export default function SiteForm({ site }: Props) {
           <button
             type="button"
             onClick={() => router.push('/admin/sites')}
-            className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+            className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="px-6 py-2.5 rounded-lg bg-red-500 text-white font-semibold text-sm hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-500/30"
+            className="px-6 py-2.5 rounded-lg bg-red-500 text-white font-bold text-sm hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-500/30"
           >
             {isPending ? 'Saving...' : site ? 'Save Changes' : 'Create Site'}
           </button>

@@ -16,11 +16,13 @@ type CachedShift = Shift & {
   guard: Guard | null;
   site: Site;
   attendance: Attendance | null;
+  lastAttentionIndexSent?: number;
 };
 
 // Global State
 let cachedShifts: CachedShift[] = [];
 let lastFullSync = 0;
+const shiftStates = new Map<string, { lastAttentionIndexSent?: number }>();
 
 async function runWorker() {
   console.log('Worker started with 5s tick and 30s full sync...');
@@ -40,10 +42,12 @@ async function runWorker() {
       const nowMs = now.getTime();
 
       // 2. Data Synchronization
+      let isFullSync = false;
       if (nowMs - lastFullSync > FULL_SYNC_INTERVAL_MS || cachedShifts.length === 0) {
+        isFullSync = true;
         // --- HEAVY SYNC (Every 30s) ---
         // Discover active shifts and load full metadata
-        cachedShifts = await prisma.shift.findMany({
+        const newShifts = await prisma.shift.findMany({
           where: {
             status: { in: ['scheduled', 'in_progress'] },
             startsAt: { lte: now },
@@ -52,6 +56,13 @@ async function runWorker() {
           },
           include: { shiftType: true, guard: true, site: true, attendance: true },
         });
+
+        // Restore state
+        cachedShifts = newShifts.map(s => {
+          const state = shiftStates.get(s.id);
+          return { ...s, lastAttentionIndexSent: state?.lastAttentionIndexSent };
+        });
+
         lastFullSync = nowMs;
         // console.log(`[Full Sync] Loaded ${cachedShifts.length} active shifts.`);
       } else {
@@ -91,57 +102,53 @@ async function runWorker() {
         const attendanceGraceMs = ATTENDANCE_GRACE_PERIOD_MINS * 60000;
 
         // If attendance is missing and we are past start + grace period
-        if (!shift.attendance && (nowMs > startMs + attendanceGraceMs)) {
-            // Check if alert exists
-            const existingAttendanceAlert = await prisma.alert.findUnique({
-              where: {
-                shiftId_reason_windowStart: {
+        if (!shift.attendance && nowMs > startMs + attendanceGraceMs) {
+          // Check if alert exists
+          const existingAttendanceAlert = await prisma.alert.findUnique({
+            where: {
+              shiftId_reason_windowStart: {
+                shiftId: shift.id,
+                reason: 'missed_attendance',
+                windowStart: shift.startsAt,
+              },
+            },
+          });
+
+          if (!existingAttendanceAlert) {
+            console.log(`Detected missed attendance for shift ${shift.id} (Guard: ${shift.guard?.name})`);
+
+            await prisma.$transaction(async tx => {
+              const newAlert = await tx.alert.create({
+                data: {
                   shiftId: shift.id,
-                  reason: 'missed_attendance', 
+                  siteId: shift.siteId,
+                  reason: 'missed_attendance',
+                  severity: 'warning',
                   windowStart: shift.startsAt,
                 },
-              },
-            });
+              });
 
-            if (!existingAttendanceAlert) {
-              console.log(
-                `Detected missed attendance for shift ${shift.id} (Guard: ${
-                  shift.guard?.name
-                })`
-              );
-
-              await prisma.$transaction(async tx => {
-                const newAlert = await tx.alert.create({
-                  data: {
-                    shiftId: shift.id,
-                    siteId: shift.siteId,
-                    reason: 'missed_attendance',
-                    severity: 'warning',
-                    windowStart: shift.startsAt,
-                  },
-                });
-
-                const alert = await tx.alert.findUnique({
-                  where: { id: newAlert.id },
-                  include: {
-                    site: true,
-                    shift: {
-                      include: {
-                        guard: true,
-                        shiftType: true,
-                      },
+              const alert = await tx.alert.findUnique({
+                where: { id: newAlert.id },
+                include: {
+                  site: true,
+                  shift: {
+                    include: {
+                      guard: true,
+                      shiftType: true,
                     },
                   },
-                });
-
-                const payload = {
-                  type: 'alert_created',
-                  alert,
-                };
-                await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
-                console.log(`[MOCK] Sending notification for alert ${newAlert.id}`);
+                },
               });
-            }
+
+              const payload = {
+                type: 'alert_created',
+                alert,
+              };
+              await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
+              console.log(`[MOCK] Sending notification for alert ${newAlert.id}`);
+            });
+          }
         }
         // --- ATTENDANCE ALERT LOGIC END ---
 
@@ -225,28 +232,76 @@ async function runWorker() {
         }
         // --- CHECKIN ALERT LOGIC END ---
 
+        // --- NEED ATTENTION LOGIC START ---
+        // Check for upcoming grace period end (1 minute warning)
+        const attentionOffset = graceMs - 60000;
+        const attentionIndex = Math.floor((elapsedSinceStart - attentionOffset) / intervalMs);
+
+        // If we are in the attention window (e.g. 1 min before grace ends)
+        // AND we haven't already passed the grace period (which would be an Alert)
+        if (attentionIndex >= 0 && attentionIndex > passedIntervalIndex) {
+          if (shift.lastAttentionIndexSent !== attentionIndex) {
+            const dueTime = new Date(startMs + attentionIndex * intervalMs);
+            const lastHeartbeat = shift.lastHeartbeatAt;
+            const hasCheckedInForSlot = lastHeartbeat && lastHeartbeat.getTime() >= dueTime.getTime();
+
+            if (!hasCheckedInForSlot) {
+              const fakeAlert = {
+                id: `transient-${shift.id}-${attentionIndex}`,
+                shiftId: shift.id,
+                siteId: shift.siteId,
+                reason: 'missed_checkin',
+                severity: 'warning',
+                windowStart: dueTime,
+                createdAt: now,
+                resolvedAt: null,
+                site: shift.site,
+                shift: {
+                  ...shift,
+                },
+                status: 'need_attention',
+              };
+
+              const payload = {
+                type: 'alert_attention',
+                alert: fakeAlert,
+              };
+              await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
+
+              // Mark as sent
+              shift.lastAttentionIndexSent = attentionIndex;
+              shiftStates.set(shift.id, { lastAttentionIndexSent: attentionIndex });
+            }
+          }
+        }
+        // --- NEED ATTENTION LOGIC END ---
+
         // Aggregate for Dashboard
-        if (!activeSitesMap.has(shift.siteId)) {
-          activeSitesMap.set(shift.siteId, {
-            site: shift.site,
-            shifts: [],
+        if (isFullSync) {
+          if (!activeSitesMap.has(shift.siteId)) {
+            activeSitesMap.set(shift.siteId, {
+              site: shift.site,
+              shifts: [],
+            });
+          }
+          activeSitesMap.get(shift.siteId)?.shifts.push({
+            id: shift.id,
+            guard: shift.guard,
+            shiftType: shift.shiftType,
+            startsAt: shift.startsAt,
+            endsAt: shift.endsAt,
+            status: shift.status,
+            // checkInCount: shift.checkInCount,
+            missedCount: shift.missedCount,
           });
         }
-        activeSitesMap.get(shift.siteId)?.shifts.push({
-          id: shift.id,
-          guard: shift.guard,
-          shiftType: shift.shiftType,
-          startsAt: shift.startsAt,
-          endsAt: shift.endsAt,
-          status: shift.status,
-          // checkInCount: shift.checkInCount,
-          missedCount: shift.missedCount,
-        });
       }
 
       // Publish Active Shifts Broadcast
-      const activeSitesPayload = Array.from(activeSitesMap.values());
-      await redis.publish('dashboard:active-shifts', JSON.stringify(activeSitesPayload));
+      if (isFullSync) {
+        const activeSitesPayload = Array.from(activeSitesMap.values());
+        await redis.publish('dashboard:active-shifts', JSON.stringify(activeSitesPayload));
+      }
 
       await prisma.$queryRaw`SELECT pg_advisory_unlock(${LOCK_ID})`;
     } catch (error) {

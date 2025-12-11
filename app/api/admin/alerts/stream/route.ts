@@ -11,7 +11,14 @@ export async function GET(req: Request) {
   // TODO: Auth check (Admin access)
 
   const encoder = new TextEncoder();
-  const subscriber = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  const subscriber = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    enableReadyCheck: false,
+  });
+
+  subscriber.on('error', err => {
+    console.error('Redis subscription error:', err);
+  });
+
   let interval: NodeJS.Timeout;
 
   const stream = new ReadableStream({
@@ -27,14 +34,14 @@ export async function GET(req: Request) {
       const openAlerts = await prisma.alert.findMany({
         where: whereCondition,
         orderBy: { createdAt: 'desc' },
-        include: { 
-            site: true,
-            shift: { 
-                include: { 
-                    guard: true,
-                    shiftType: true,
-                } 
-            } 
+        include: {
+          site: true,
+          shift: {
+            include: {
+              guard: true,
+              shiftType: true,
+            },
+          },
         },
       });
 
@@ -43,36 +50,36 @@ export async function GET(req: Request) {
 
       // 1b. Send Initial Active Shifts (Global Mode Only)
       if (!siteId) {
-          const now = new Date();
-          const shifts = await prisma.shift.findMany({
-            where: {
-              status: { in: ['scheduled', 'in_progress'] },
-              startsAt: { lte: now },
-              endsAt: { gte: now },
-              guardId: { not: null },
-            },
-            include: { shiftType: true, guard: true, site: true },
-          });
+        const now = new Date();
+        const shifts = await prisma.shift.findMany({
+          where: {
+            status: { in: ['scheduled', 'in_progress'] },
+            startsAt: { lte: now },
+            endsAt: { gte: now },
+            guardId: { not: null },
+          },
+          include: { shiftType: true, guard: true, site: true },
+        });
 
-          const activeSitesMap = new Map<string, { site: any; shifts: any[] }>();
-          for (const shift of shifts) {
-            if (!activeSitesMap.has(shift.siteId)) {
-                activeSitesMap.set(shift.siteId, { site: shift.site, shifts: [] });
-            }
-            activeSitesMap.get(shift.siteId)?.shifts.push({
-                id: shift.id,
-                guard: shift.guard,
-                shiftType: shift.shiftType,
-                startsAt: shift.startsAt,
-                endsAt: shift.endsAt,
-                status: shift.status,
-                checkInCount: shift.checkInCount,
-                missedCount: shift.missedCount,
-            });
+        const activeSitesMap = new Map<string, { site: any; shifts: any[] }>();
+        for (const shift of shifts) {
+          if (!activeSitesMap.has(shift.siteId)) {
+            activeSitesMap.set(shift.siteId, { site: shift.site, shifts: [] });
           }
-          const activeSitesPayload = Array.from(activeSitesMap.values());
-          const activeEvent = `event: active_shifts\ndata: ${JSON.stringify(activeSitesPayload)}\n\n`;
-          controller.enqueue(encoder.encode(activeEvent));
+          activeSitesMap.get(shift.siteId)?.shifts.push({
+            id: shift.id,
+            guard: shift.guard,
+            shiftType: shift.shiftType,
+            startsAt: shift.startsAt,
+            endsAt: shift.endsAt,
+            status: shift.status,
+            checkInCount: shift.checkInCount,
+            missedCount: shift.missedCount,
+          });
+        }
+        const activeSitesPayload = Array.from(activeSitesMap.values());
+        const activeEvent = `event: active_shifts\ndata: ${JSON.stringify(activeSitesPayload)}\n\n`;
+        controller.enqueue(encoder.encode(activeEvent));
       }
 
       // 2. Subscribe to Redis
@@ -90,27 +97,27 @@ export async function GET(req: Request) {
         await subscriber.subscribe('dashboard:active-shifts');
 
         subscriber.on('pmessage', (pattern, channel, message) => {
-           if (pattern === 'alerts:site:*') {
-               const event = `event: alert\ndata: ${message}\n\n`;
-               controller.enqueue(encoder.encode(event));
-           }
+          if (pattern === 'alerts:site:*') {
+            const event = `event: alert\ndata: ${message}\n\n`;
+            controller.enqueue(encoder.encode(event));
+          }
         });
 
         subscriber.on('message', (channel, message) => {
-            if (channel === 'dashboard:active-shifts') {
-                const event = `event: active_shifts\ndata: ${message}\n\n`;
-                controller.enqueue(encoder.encode(event));
-            }
+          if (channel === 'dashboard:active-shifts') {
+            const event = `event: active_shifts\ndata: ${message}\n\n`;
+            controller.enqueue(encoder.encode(event));
+          }
         });
       }
 
       // 3. Keepalive (every 30s)
       interval = setInterval(() => {
         try {
-            const ping = `: ping\n\n`;
-            controller.enqueue(encoder.encode(ping));
+          const ping = `: ping\n\n`;
+          controller.enqueue(encoder.encode(ping));
         } catch (e) {
-            clearInterval(interval);
+          clearInterval(interval);
         }
       }, 30000);
     },
@@ -124,7 +131,7 @@ export async function GET(req: Request) {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
     },
   });
 }

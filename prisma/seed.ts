@@ -127,7 +127,7 @@ async function main() {
       startsAt: morningStartsAt,
       endsAt: morningEndsAt,
       status: 'scheduled',
-      requiredCheckinIntervalMins: 10,
+      requiredCheckinIntervalMins: 5,
       graceMinutes: 5,
     },
   });
@@ -150,7 +150,7 @@ async function main() {
       startsAt: afternoonStartsAt,
       endsAt: afternoonEndsAt,
       status: 'scheduled',
-      requiredCheckinIntervalMins: 10,
+      requiredCheckinIntervalMins: 5,
       graceMinutes: 5,
     },
   });
@@ -173,7 +173,7 @@ async function main() {
       startsAt: nightShiftStartsAt,
       endsAt: nightShiftEndsAt,
       status: 'scheduled',
-      requiredCheckinIntervalMins: 10,
+      requiredCheckinIntervalMins: 5,
       graceMinutes: 5,
     },
   });
@@ -195,7 +195,7 @@ async function main() {
       startsAt: morningStartsAt2,
       endsAt: morningEndsAt2,
       status: 'scheduled',
-      requiredCheckinIntervalMins: 10,
+      requiredCheckinIntervalMins: 5,
       graceMinutes: 5,
     },
   });
@@ -216,7 +216,7 @@ async function main() {
       startsAt: morningStartsAt3,
       endsAt: morningEndsAt3,
       status: 'scheduled',
-      requiredCheckinIntervalMins: 10,
+      requiredCheckinIntervalMins: 5,
       graceMinutes: 5,
     },
   });

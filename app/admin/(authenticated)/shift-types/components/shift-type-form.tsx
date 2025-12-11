@@ -2,13 +2,35 @@
 
 import { Serialized } from '@/lib/utils';
 import { createShiftType, updateShiftType, ActionState } from '../actions';
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { ShiftType } from '@prisma/client';
 import { useRouter } from 'next/navigation';
+import { TimePicker } from '@/components/ui/time-picker';
+import { Clock } from 'lucide-react';
 
 type Props = {
   shiftType?: Serialized<ShiftType>;
+};
+
+const calculateDuration = (start: string | null, end: string | null) => {
+  if (!start || !end) return null;
+
+  const [startH, startM] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+
+  const startTotal = startH * 60 + startM;
+  let endTotal = endH * 60 + endM;
+
+  if (endTotal < startTotal) {
+    endTotal += 24 * 60; // Crosses midnight
+  }
+
+  const diff = endTotal - startTotal;
+  const hours = Math.floor(diff / 60);
+  const minutes = diff % 60;
+
+  return `${hours} hr ${minutes} min`;
 };
 
 export default function ShiftTypeForm({ shiftType }: Props) {
@@ -17,6 +39,11 @@ export default function ShiftTypeForm({ shiftType }: Props) {
     shiftType ? updateShiftType.bind(null, shiftType.id) : createShiftType,
     { success: false }
   );
+
+  const [startTime, setStartTime] = useState<string | null>(shiftType?.startTime || null);
+  const [endTime, setEndTime] = useState<string | null>(shiftType?.endTime || null);
+
+  const duration = useMemo(() => calculateDuration(startTime, endTime), [startTime, endTime]);
 
   useEffect(() => {
     if (state.success) {
@@ -55,13 +82,12 @@ export default function ShiftTypeForm({ shiftType }: Props) {
             <label htmlFor="startTime" className="block font-medium text-gray-700 mb-1">
               Start Time
             </label>
-            <input
-              type="time"
-              name="startTime"
-              id="startTime"
-              defaultValue={shiftType?.startTime || ''}
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+            <TimePicker
+              onChange={setStartTime}
+              value={startTime}
+              className="w-full h-10"
             />
+            <input type="hidden" name="startTime" value={startTime || ''} />
             {state.errors?.startTime && <p className="text-red-500 text-xs mt-1">{state.errors.startTime[0]}</p>}
           </div>
 
@@ -70,16 +96,23 @@ export default function ShiftTypeForm({ shiftType }: Props) {
             <label htmlFor="endTime" className="block font-medium text-gray-700 mb-1">
               End Time
             </label>
-            <input
-              type="time"
-              name="endTime"
-              id="endTime"
-              defaultValue={shiftType?.endTime || ''}
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+            <TimePicker
+              onChange={setEndTime}
+              value={endTime}
+              className="w-full h-10"
             />
+            <input type="hidden" name="endTime" value={endTime || ''} />
             {state.errors?.endTime && <p className="text-red-500 text-xs mt-1">{state.errors.endTime[0]}</p>}
           </div>
         </div>
+
+        {/* Duration Display */}
+        {duration && (
+          <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md w-fit">
+            <Clock className="w-4 h-4" />
+            <span className="font-medium">Shift Duration: {duration}</span>
+          </div>
+        )}
 
         {/* Error Message */}
         {state.message && !state.success && (

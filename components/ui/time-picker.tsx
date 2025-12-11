@@ -1,0 +1,131 @@
+'use client';
+
+import * as React from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+
+interface TimePickerProps {
+  value: string | null;
+  onChange: (value: string) => void;
+  className?: string;
+}
+
+export function TimePicker({ value, onChange, className }: TimePickerProps) {
+  const [hour, setHour] = React.useState<string | undefined>(undefined);
+  const [minute, setMinute] = React.useState<string | undefined>(undefined);
+  const [period, setPeriod] = React.useState<'AM' | 'PM' | undefined>(undefined);
+
+  // Convert 24h string to 12h parts
+  React.useEffect(() => {
+    if (value) {
+      const [h24, m] = value.split(':');
+      const hInt = parseInt(h24, 10);
+      
+      let p: 'AM' | 'PM' = 'AM';
+      let h12 = hInt;
+
+      if (hInt >= 12) {
+        p = 'PM';
+        if (hInt > 12) h12 = hInt - 12;
+      }
+      if (hInt === 0) {
+        h12 = 12;
+      }
+
+      setHour(h12.toString().padStart(2, '0'));
+      setMinute(m);
+      setPeriod(p);
+    } else {
+      setHour(undefined);
+      setMinute(undefined);
+      setPeriod(undefined);
+    }
+  }, [value]);
+
+  const handleTimeChange = (type: 'hour' | 'minute' | 'period', val: string) => {
+    // Defaults
+    const currentHour = hour || '12';
+    const currentMinute = minute || '00';
+    const currentPeriod = period || 'AM';
+
+    let newHour = currentHour;
+    let newMinute = currentMinute;
+    let newPeriod = currentPeriod;
+
+    if (type === 'hour') newHour = val;
+    else if (type === 'minute') newMinute = val;
+    else if (type === 'period') newPeriod = val as 'AM' | 'PM';
+
+    // Convert to 24h
+    let h24 = parseInt(newHour, 10);
+    if (newPeriod === 'PM' && h24 !== 12) h24 += 12;
+    if (newPeriod === 'AM' && h24 === 12) h24 = 0;
+
+    const h24Str = h24.toString().padStart(2, '0');
+    onChange(`${h24Str}:${newMinute}`);
+  };
+
+  const hourOptions = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+  
+  const minuteOptions = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
+
+  return (
+    <div className={cn('flex items-center gap-2', className)}>
+      {/* Hour Select */}
+      <Select
+        value={hour}
+        onValueChange={(val) => handleTimeChange('hour', val)}
+      >
+        <SelectTrigger className="w-[70px]">
+          <SelectValue placeholder="HH" />
+        </SelectTrigger>
+        <SelectContent className="max-h-[200px] min-w-0 w-[70px]">
+          {hourOptions.map((h) => (
+            <SelectItem key={h} value={h}>
+              {h}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <span className="text-gray-500 font-medium">:</span>
+
+      {/* Minute Select */}
+      <Select
+        value={minute}
+        onValueChange={(val) => handleTimeChange('minute', val)}
+      >
+        <SelectTrigger className="w-[70px]">
+          <SelectValue placeholder="MM" />
+        </SelectTrigger>
+        <SelectContent className="max-h-[200px] min-w-0 w-[70px]">
+          {minuteOptions.map((m) => (
+            <SelectItem key={m} value={m}>
+              {m}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* AM/PM Select */}
+      <Select
+        value={period}
+        onValueChange={(val) => handleTimeChange('period', val)}
+      >
+        <SelectTrigger className="w-[70px]">
+          <SelectValue placeholder="AM/PM" />
+        </SelectTrigger>
+        <SelectContent className="min-w-0 w-[70px]">
+          <SelectItem value="AM">AM</SelectItem>
+          <SelectItem value="PM">PM</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/app/guard/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { useActionState } from 'react';
 import { ShiftWithRelations } from '@/app/admin/(authenticated)/shifts/components/shift-list';
 import { useRouter } from 'next/navigation'; // Import useRouter

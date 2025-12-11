@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/app/guard/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { ShiftWithRelations } from '@/app/admin/(authenticated)/shifts/components/shift-list'; // Assuming this type is available and suitable
 import { useGuardApi } from '@/app/guard/(authenticated)/hooks/use-guard-api'; // Adjust import path as necessary
 import { format } from 'date-fns';
@@ -102,7 +102,7 @@ export function AttendanceRecord({
           Kehadiran direkam pada {format(new Date(shift.attendance!.recordedAt), 'MM/dd/yyyy HH:mm')}
         </p>
       ) : isLate ? (
-        <p className="text-red-600 font-bold">Kehadiran Hilang</p>
+        <p className="text-red-600 font-bold">Kehadiran Tidak Terekam</p>
       ) : (
         <p className="text-red-500 font-medium">Harap rekam kehadiran Anda untuk memulai Shift.</p>
       )}
@@ -127,7 +127,9 @@ export function AttendanceRecord({
       )}
 
       {isLate && !hasAttendance && (
-        <p className="text-red-600 mt-2 font-medium">Jendela kehadiran terlewat. Harap hubungi administrator Anda.</p>
+        <p className="text-red-600 mt-2 font-medium">
+          Batas waktu presensi terlewat. Harap hubungi administrator Anda.
+        </p>
       )}
     </div>
   );

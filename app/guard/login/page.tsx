@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useActionState } from 'react';
-import { Button } from '@/app/guard/components/ui/button'; // Assuming this exists for styling
+import { Button } from '@/components/ui/button'; // Assuming this exists for styling
+import { PasswordInput } from '@/components/ui/password-input';
 
 type GuardLoginState = {
   success?: boolean;
@@ -65,8 +66,7 @@ export default function GuardLoginPage() {
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
             </label>
-            <input
-              type="password"
+            <PasswordInput
               id="password"
               name="password"
               required

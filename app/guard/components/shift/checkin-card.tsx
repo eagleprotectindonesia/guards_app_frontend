@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/app/guard/components/ui/button';
 import { ShiftWithRelations } from '@/app/admin/(authenticated)/shifts/components/shift-list';
 import { useGuardApi } from '@/app/guard/(authenticated)/hooks/use-guard-api';
 
@@ -72,9 +71,9 @@ export default function CheckInCard({
     if (currentTime < nextDue) {
       const diffSec = Math.ceil((nextDue.getTime() - currentTime.getTime()) / 1000);
       if (diffSec > 60) {
-        windowMessage = `Buka dalam ${Math.ceil(diffSec / 60)} menit`;
+        windowMessage = `Check in dibuka dalam ${Math.ceil(diffSec / 60)} menit`;
       } else {
-        windowMessage = `Buka dalam ${diffSec} detik`;
+        windowMessage = `Check in dibuka dalam ${diffSec} detik`;
       }
     } else if (currentTime > graceEndTime) {
       windowMessage = 'Jendela terlewat';
@@ -144,15 +143,14 @@ export default function CheckInCard({
         </p>
       </div>
 
-      <button
-        onClick={handleCheckIn}
-        disabled={!canCheckIn}
-        className={`w-full text-lg font-bold py-4 rounded-lg shadow transition-all active:scale-95 ${
-          canCheckIn ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-        }`}
-      >
-        {canCheckIn ? 'CHECK IN SEKARANG' : 'TERKUNCI'}
-      </button>
+      {canCheckIn && (
+        <button
+          onClick={handleCheckIn}
+          className="w-full text-lg font-bold py-4 rounded-lg shadow transition-all active:scale-95 bg-green-600 hover:bg-green-700 text-white"
+        >
+          CHECK IN SEKARANG
+        </button>
+      )}
 
       {status && <p className="mt-4 text-center font-medium text-sm text-gray-700">{status}</p>}
     </div>

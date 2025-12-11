@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { Guard } from '@prisma/client';
 import DatePicker from 'react-datepicker';
 import { useRouter } from 'next/navigation';
+import { PasswordInput } from '@/components/ui/password-input';
 
 type Props = {
   guard?: Serialized<Guard>; // If provided, it's an edit form
@@ -152,8 +153,7 @@ export default function GuardForm({ guard }: Props) {
               <label htmlFor="password" className="block font-medium text-gray-700 mb-1">
                 Password
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 name="password"
                 id="password"
                 required={!guard} // Only required when creating

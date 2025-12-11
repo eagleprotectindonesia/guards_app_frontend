@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { PasswordInput } from '@/components/ui/password-input';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -56,8 +57,7 @@ export default function AdminLogin() {
             <label htmlFor="password" className="mb-2 block text-sm font-medium text-gray-700">
               Password
             </label>
-            <input
-              type="password"
+            <PasswordInput
               id="password"
               className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
               value={password}

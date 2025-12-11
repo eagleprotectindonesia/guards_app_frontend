@@ -6,6 +6,7 @@ import { useActionState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Admin } from '@prisma/client';
 import { useRouter } from 'next/navigation';
+import { PasswordInput } from '@/components/ui/password-input';
 
 type Props = {
   admin?: Serialized<Admin>;
@@ -85,8 +86,7 @@ export default function AdminForm({ admin }: Props) {
           <label htmlFor="password" className="block font-medium text-gray-700 mb-1">
             {admin ? 'New Password (Optional)' : 'Password'}
           </label>
-          <input
-            type="password"
+          <PasswordInput
             name="password"
             id="password"
             className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"

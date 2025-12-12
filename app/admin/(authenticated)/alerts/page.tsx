@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Alert, Shift, Site, Guard, ShiftType, Admin } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
-import AlertItem from '../components/alert-item';
-import AlertResolutionModal from '../components/alert-resolution-modal';
+import AlertFeed, { AlertWithRelations } from '../components/alert-feed';
 import PaginationNav from '../components/pagination-nav';
 
 type GuardWithOptionalRelations = Serialized<Guard>;
@@ -16,12 +15,6 @@ type AdminWithOptionalRelations = Serialized<Admin>;
 type ShiftWithOptionalRelations = Serialized<Shift> & {
   guard?: GuardWithOptionalRelations | null;
   shiftType?: ShiftTypeWithOptionalRelations;
-};
-
-type AlertWithRelations = Serialized<Alert> & {
-  site?: SiteWithOptionalRelations;
-  shift?: ShiftWithOptionalRelations;
-  resolverAdmin?: AdminWithOptionalRelations | null;
 };
 
 type SSEAlertData =
@@ -38,8 +31,6 @@ export default function AdminAlertsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');
   const eventSourceRef = useRef<EventSource | null>(null);
-
-  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
 
   // Fetch alerts with pagination
   useEffect(() => {
@@ -123,35 +114,8 @@ export default function AdminAlertsPage() {
   }, [page]); // Re-run if page changes to update the closure
 
   const handleResolve = (alertId: string) => {
-    setSelectedAlertId(alertId);
-  };
-
-  const handleConfirmResolution = async (outcome: 'resolve' | 'forgive', note: string) => {
-    if (!selectedAlertId) return;
-
-    try {
-      const body = { outcome, note };
-      await fetch(`/api/admin/alerts/${selectedAlertId}/resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      // Optimistic Update
-      setAlerts(prev => {
-        return prev.map(a => {
-          if (a.id !== selectedAlertId) return a;
-          return {
-            ...a,
-            resolvedAt: new Date().toISOString(),
-          };
-        });
-      });
-
-      setSelectedAlertId(null);
-    } catch (err) {
-      console.error(err);
-    }
+    // Optimistic Update: remove the resolved alert from the list
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
   };
 
   const handleAcknowledge = async (alertId: string) => {
@@ -197,38 +161,14 @@ export default function AdminAlertsPage() {
       </header>
 
       <div className="flex-1 flex flex-col">
-        {alerts.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-            <div className="mx-auto w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900">All Clear</h3>
-            <p className="text-gray-500">No active alerts at the moment.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {alerts.map(alert => (
-              <AlertItem
-                key={alert.id}
-                alert={alert}
-                onAcknowledge={handleAcknowledge}
-                onResolve={handleResolve}
-                showResolutionDetails={true}
-              />
-            ))}
-          </div>
-        )}
-
+        <AlertFeed
+          alerts={alerts}
+          onAcknowledge={handleAcknowledge}
+          onResolve={handleResolve}
+          showResolutionDetails={true}
+        />
         <PaginationNav page={page} perPage={perPage} totalCount={totalCount} />
       </div>
-
-      <AlertResolutionModal
-        isOpen={!!selectedAlertId}
-        onClose={() => setSelectedAlertId(null)}
-        onConfirm={handleConfirmResolution}
-      />
     </div>
   );
 }

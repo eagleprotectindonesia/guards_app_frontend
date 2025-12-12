@@ -3,11 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Site, Guard, Shift, ShiftType, Alert } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
-import AlertMap from '../components/alert-map';
-import AlertItem from '../components/alert-item';
-import AlertResolutionModal from '../components/alert-resolution-modal';
-import Select from '../components/select'; // Added import for custom Select component
 import AlarmInterface from './components/alarm-interface';
+import AlertFeed from '../components/alert-feed'; // Import the new AlertFeed component
+import Select from '../components/select';
 
 type GuardWithOptionalRelations = Serialized<Guard>;
 type ShiftTypeWithOptionalRelations = Serialized<ShiftType>;
@@ -28,7 +26,7 @@ type ActiveSiteData = {
   shifts: ActiveShiftInDashboard[];
 };
 
-type AlertWithRelations = Serialized<Alert> & {
+export type AlertWithRelations = Serialized<Alert> & {
   site?: SiteWithOptionalRelations;
   shift?: ShiftWithOptionalRelations;
   status?: string;
@@ -48,8 +46,6 @@ export default function AdminDashboard() {
   const [alerts, setAlerts] = useState<AlertWithRelations[]>([]);
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');
   const eventSourceRef = useRef<EventSource | null>(null);
-
-  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
 
   // Fetch all sites for the dropdown (static list)
   useEffect(() => {
@@ -148,27 +144,8 @@ export default function AdminDashboard() {
   }, [selectedSiteId]);
 
   const handleResolve = (alertId: string) => {
-    setSelectedAlertId(alertId);
-  };
-
-  const handleConfirmResolution = async (outcome: 'resolve' | 'forgive', note: string) => {
-    if (!selectedAlertId) return;
-
-    try {
-      const body = { outcome, note };
-      await fetch(`/api/admin/alerts/${selectedAlertId}/resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      // Optimistic Update: remove the resolved alert from the list
-      setAlerts(prev => prev.filter(a => a.id !== selectedAlertId));
-
-      setSelectedAlertId(null);
-    } catch (err) {
-      console.error(err);
-    }
+    // Optimistic Update: remove the resolved alert from the list
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
   };
 
   const handleAcknowledge = async (alertId: string) => {
@@ -285,43 +262,18 @@ export default function AdminDashboard() {
         {/* Main Column: Alerts Feed */}
         <div className="col-span-1 lg:col-span-3 space-y-4">
           <AlarmInterface alerts={alerts} />
-
           {/* <AlertMap alerts={alerts} /> */}
-
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">Alert Feed</h2>
-            {selectedSiteId && (
-              <button onClick={() => setSelectedSiteId('')} className="text-sm text-blue-600 hover:text-blue-800">
-                View All Sites
-              </button>
-            )}
-          </div>
-
-          {alerts.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-              <div className="mx-auto w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900">All Clear</h3>
-              <p className="text-gray-500">No active alerts at the moment.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {alerts.map(alert => (
-                <AlertItem key={alert.id} alert={alert} onAcknowledge={handleAcknowledge} onResolve={handleResolve} />
-              ))}
-            </div>
-          )}
+          <AlertFeed
+            alerts={alerts}
+            onAcknowledge={handleAcknowledge}
+            onResolve={handleResolve}
+            showSiteFilter={true}
+            selectedSiteId={selectedSiteId}
+            onSiteSelect={setSelectedSiteId}
+            showResolutionDetails={false}
+          />
         </div>
       </div>
-
-      <AlertResolutionModal
-        isOpen={!!selectedAlertId}
-        onClose={() => setSelectedAlertId(null)}
-        onConfirm={handleConfirmResolution}
-      />
     </div>
   );
 }

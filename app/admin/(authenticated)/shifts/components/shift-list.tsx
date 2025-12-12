@@ -257,11 +257,12 @@ export default function ShiftList({
                       {(() => {
                         const now = new Date();
                         const shiftEndsAt = new Date(shift.endsAt);
-                        const shiftStartsAt = new Date(shift.startsAt);
-                        const isPastOrOngoing = shiftEndsAt < now || (shiftStartsAt < now && shiftEndsAt > now);
+                        // const shiftStartsAt = new Date(shift.startsAt);
+                        // const isPastOrOngoing = shiftEndsAt < now || (shiftStartsAt < now && shiftEndsAt > now);
+                        const isPast = shiftEndsAt < now;
                         return (
                           <div className="flex items-center justify-end gap-2 opacity-100">
-                            {isPastOrOngoing ? (
+                            {isPast ? (
                               <button
                                 disabled
                                 className="p-2 text-gray-300 cursor-not-allowed rounded-lg"

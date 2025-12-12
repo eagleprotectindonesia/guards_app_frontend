@@ -152,7 +152,9 @@ export default function GuardPage() {
   return (
     <div className="p-8 max-w-md mx-auto font-sans">
       <h1 className="text-2xl font-bold mb-1">Selamat datang, {guardDetails?.name || 'Guard'}!</h1>
-      {guardDetails?.guardCode && <p className="text-gray-500 text-sm mb-4">Kode Guard: {guardDetails.guardCode}</p>}
+      {guardDetails?.guardCode && (
+        <p className="text-gray-500 text-sm font-semibold mb-4">Kode Guard: {guardDetails.guardCode}</p>
+      )}
 
       {loading && <p>Memuat detail Shift Anda...</p>}
 

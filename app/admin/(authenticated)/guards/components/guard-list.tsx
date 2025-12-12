@@ -3,14 +3,15 @@
 import { useState, useTransition } from 'react';
 import { Guard } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
-import { deleteGuard } from '../actions';
+import { deleteGuard, getAllGuardsForExport } from '../actions';
 import ConfirmDialog from '../../components/confirm-dialog';
 import ChangePasswordModal from './change-password-modal';
 import { DeleteButton } from '../../components/action-buttons';
 import PaginationNav from '../../components/pagination-nav';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { Pencil, Key } from 'lucide-react';
+import { Pencil, Key, Download } from 'lucide-react';
+import Search from '../../components/search';
 
 type GuardListProps = {
   guards: Serialized<Guard>[];
@@ -42,6 +43,41 @@ export default function GuardList({ guards, page, perPage, totalCount }: GuardLi
     });
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const guards = await getAllGuardsForExport();
+      
+      const headers = ['Name', 'Phone', 'Guard Code', 'Status', 'Joined Date', 'Left Date', 'Note'];
+      const csvContent = [
+        headers.join(','),
+        ...guards.map(guard => {
+          return [
+            `"${guard.name}"`,
+            `"${guard.phone}"`,
+            `"${guard.guardCode || ''}"`,
+            guard.status ? 'Active' : 'Inactive',
+            `"${guard.joinDate ? new Date(guard.joinDate).toLocaleDateString() : ''}"`,
+            `"${guard.leftDate ? new Date(guard.leftDate).toLocaleDateString() : ''}"`,
+            `"${guard.note ? guard.note.replace(/"/g, '""') : ''}"`
+          ].join(',');
+        })
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `guards_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Failed to export guards:', error);
+      toast.error('Failed to export guards.');
+    }
+  };
+
   return (
     <div>
       {/* Header Section */}
@@ -50,13 +86,25 @@ export default function GuardList({ guards, page, perPage, totalCount }: GuardLi
           <h1 className="text-2xl font-bold text-gray-900">Guards</h1>
           <p className="text-sm text-gray-500 mt-1">Manage security personnel and contact info.</p>
         </div>
-        <Link
-          href="/admin/guards/create"
-          className="inline-flex items-center justify-center h-10 px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-colors shadow-sm shadow-red-500/30"
-        >
-          <span className="mr-2 text-lg leading-none">+</span>
-          Add Guard
-        </Link>
+        <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
+          <div className="w-full md:w-64">
+            <Search placeholder="Search guards..." />
+          </div>
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center justify-center h-10 px-4 py-2 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm w-full md:w-auto"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </button>
+          <Link
+            href="/admin/guards/create"
+            className="inline-flex items-center justify-center h-10 px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-colors shadow-sm shadow-red-500/30 w-full md:w-auto"
+          >
+            <span className="mr-2 text-lg leading-none">+</span>
+            Add Guard
+          </Link>
+        </div>
       </div>
 
       {/* Table Section */}

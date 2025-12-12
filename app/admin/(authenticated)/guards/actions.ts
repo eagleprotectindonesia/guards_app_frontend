@@ -2,8 +2,9 @@
 
 import { prisma } from '@/lib/prisma';
 import { createGuardSchema, updateGuardSchema, updateGuardPasswordSchema } from '@/lib/validations';
-import { hashPassword } from '@/lib/utils';
+import { hashPassword, serialize, Serialized } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
+import { Guard } from '@prisma/client';
 
 export type ActionState = {
   message?: string;
@@ -15,6 +16,13 @@ export type ActionState = {
   };
   success?: boolean;
 };
+
+export async function getAllGuardsForExport(): Promise<Serialized<Guard>[]> {
+  const guards = await prisma.guard.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+  return serialize(guards);
+}
 
 export async function createGuard(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const validatedFields = createGuardSchema.safeParse({

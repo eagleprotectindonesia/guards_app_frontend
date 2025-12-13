@@ -14,19 +14,33 @@ export async function GET(req: Request) {
   const now = new Date();
 
   try {
+    // Find shifts that are either currently active or starting within the next 5 minutes
     const activeShift = await prisma.shift.findFirst({
       where: {
         guardId,
         status: { in: ['scheduled', 'in_progress'] }, // Shift must be scheduled or in progress
-        startsAt: { lte: now },
+        startsAt: { lte: new Date(now.getTime() + 5 * 60000) }, // Include shifts starting within 5 minutes
         endsAt: { gte: now },
       },
       include: { site: true, shiftType: true, guard: true, attendance: true }, // Include new relations
     });
 
-    return NextResponse.json({ activeShift });
+    // Find the next upcoming shift (that isn't considered active due to early start)
+    const nextShift = await prisma.shift.findFirst({
+      where: {
+        guardId,
+        status: { in: ['scheduled'] }, // Only scheduled shifts
+        startsAt: { gt: now },
+      },
+      orderBy: {
+        startsAt: 'asc'
+      },
+      include: { site: true, shiftType: true, guard: true, attendance: true }, // Include same relations as active shift
+    });
+
+    return NextResponse.json({ activeShift, nextShift });
   } catch (error) {
-    console.error('Error fetching active shift:', error);
+    console.error('Error fetching shifts:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

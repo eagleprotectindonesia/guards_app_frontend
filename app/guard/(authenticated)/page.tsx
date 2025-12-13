@@ -9,6 +9,7 @@ import { useGuardApi } from './hooks/use-guard-api';
 import CheckInCard from '@/app/guard/components/shift/checkin-card';
 import { AttendanceRecord } from '@/app/guard/components/attendance/attendance-record';
 import { ShiftInfoCard } from '@/app/guard/components/shift/shift-info-card';
+import { NextShiftCard } from '@/app/guard/components/shift/next-shift-card';
 
 // Type for password change form state
 type PasswordChangeState = {
@@ -62,6 +63,7 @@ export default function GuardPage() {
   const router = useRouter(); // Initialize router
   const { fetchWithAuth } = useGuardApi();
   const [activeShift, setActiveShift] = useState<ShiftWithRelations | null>(null);
+  const [nextShift, setNextShift] = useState<ShiftWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [guardDetails, setGuardDetails] = useState<{ name: string; guardCode?: string } | null>(null); // New state for guard details
@@ -80,14 +82,23 @@ export default function GuardPage() {
         const endTime = new Date(activeShift.endsAt);
         if (now > endTime) {
           setActiveShift(null);
-          // Optionally re-fetch to see if there's a new upcoming shift,
-          // though usually there is a gap.
-          // fetchShift();
+          // Re-fetch to see if there's a new upcoming shift
+          fetchShift();
+        }
+      } else {
+        // When there's no active shift, check if we've passed the scheduled start time of the next shift
+        const FIVE_MINUTES_IN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+        if (nextShift) {
+          const shiftStartWithGrace = new Date(nextShift.startsAt.getTime() - FIVE_MINUTES_IN_MS);
+          if (now >= shiftStartWithGrace) {
+            // Fetch to see if the next shift is now the active shift
+            fetchShift();
+          }
         }
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [activeShift]);
+  }, [activeShift, nextShift]);
 
   const fetchGuardDetails = async () => {
     try {
@@ -115,6 +126,7 @@ export default function GuardPage() {
         const errorData = await res.json();
         console.error('Error fetching active shift:', errorData.message || res.statusText);
         setActiveShift(null);
+        setNextShift(null);
         return;
       }
       const data = await res.json();
@@ -123,6 +135,11 @@ export default function GuardPage() {
         // If guardDetails are not yet set, set guardName from activeShift
       } else {
         setActiveShift(null);
+      }
+      if (data.nextShift) {
+        setNextShift(data.nextShift);
+      } else {
+        setNextShift(null);
       }
     } catch (err) {
       console.error('Network error fetching active shift:', err);
@@ -192,6 +209,11 @@ export default function GuardPage() {
             ) : null;
           })()}
         </>
+      )}
+
+      {/* Display Next Shift if available and no active shift */}
+      {!activeShift && nextShift && (
+        <NextShiftCard shift={nextShift} />
       )}
 
       <div className="mt-8 border-t pt-6">

@@ -33,14 +33,22 @@ export default function CheckInCard({
     const graceMs = activeShift.graceMinutes * 60000;
     const nowMs = currentTime.getTime();
 
-    if (nowMs < startMs) {
-      nextDue = new Date(startMs);
+    // The first check-in should be at shift start + first interval, regardless of when attendance is recorded
+    const firstCheckInMs = startMs + intervalMs;
+
+    // If current time is before the first check-in time
+    if (nowMs < firstCheckInMs) {
+      nextDue = new Date(firstCheckInMs);
     } else {
-      const elapsed = nowMs - startMs;
-      const currentSlotIndex = Math.floor(elapsed / intervalMs);
-      const currentSlotStartMs = startMs + currentSlotIndex * intervalMs;
+      // After the first check-in time, calculate based on intervals since the first check-in
+      const elapsedSinceFirstCheckIn = nowMs - firstCheckInMs;
+      const currentSlotIndex = Math.floor(elapsedSinceFirstCheckIn / intervalMs);
+
+      // Calculate the start time of the current slot
+      const currentSlotStartMs = firstCheckInMs + currentSlotIndex * intervalMs;
       const currentSlotEndMs = currentSlotStartMs + graceMs;
 
+      // Check if guard has already completed this slot
       let isCurrentCompleted = false;
       if (activeShift.lastHeartbeatAt) {
         const lastHeartbeatMs = new Date(activeShift.lastHeartbeatAt).getTime();
@@ -50,15 +58,15 @@ export default function CheckInCard({
       }
 
       if (nowMs > currentSlotEndMs) {
-        // Missed current window, move to next
+        // Missed current window, move to next slot
         nextDue = new Date(currentSlotStartMs + intervalMs);
       } else {
         // In current window
         if (isCurrentCompleted) {
-          // Already checked in, move to next
+          // Already checked in for this slot, move to next
           nextDue = new Date(currentSlotStartMs + intervalMs);
         } else {
-          // Check in now
+          // Check in for current slot if possible
           nextDue = new Date(currentSlotStartMs);
         }
       }

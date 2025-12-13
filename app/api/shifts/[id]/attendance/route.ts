@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   try {
     const json = await req.json();
-    const body = attendanceSchema.parse(json);
+    attendanceSchema.parse(json);
 
     // 1. Fetch Shift
     const shift = await prisma.shift.findUnique({
@@ -51,15 +51,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         },
       });
 
-      const updateData: any = {};
-      if (shift.status === 'scheduled') {
-        updateData.status = 'in_progress';
-      }
-
       await tx.shift.update({
         where: { id: shift.id },
         data: {
-          ...updateData,
+          status: shift.status === 'scheduled' ? 'in_progress' : undefined,
           attendance: {
             connect: { id: attendance.id },
           },

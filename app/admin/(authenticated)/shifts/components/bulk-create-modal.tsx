@@ -51,17 +51,42 @@ export default function BulkCreateModal({ isOpen, onClose }: BulkCreateModalProp
     });
   };
 
+  const handleDownloadExample = () => {
+    // Create CSV content with headers only
+    const csvContent = 'Site Name,Shift Type Name,Date (YYYY-MM-DD),Guard Name,Required Check-in Interval (minutes),Grace Period (minutes)\n';
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'shifts_example.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Bulk Create Shifts">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 p-4">
         <div>
-          <p className="text-sm text-gray-500 mb-2">
-            Upload a CSV file with the following columns (headers required):
-            <br />
-            <code className="text-xs bg-gray-100 p-1 rounded">
-              Site Name, Shift Type Name, Date (YYYY-MM-DD), Guard Code
-            </code>
-          </p>
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm text-gray-500">
+              Upload a CSV file with the following columns (headers required):
+            </p>
+            <button
+              type="button"
+              onClick={handleDownloadExample}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Download Example
+            </button>
+          </div>
+          <code className="text-xs bg-gray-100 p-2 rounded block">
+            Site Name, Shift Type Name, Date (YYYY-MM-DD), Guard Name, Required Check-in Interval (minutes), Grace Period (minutes)
+          </code>
+        </div>
+
+        <div>
           <input
             ref={fileInputRef}
             type="file"

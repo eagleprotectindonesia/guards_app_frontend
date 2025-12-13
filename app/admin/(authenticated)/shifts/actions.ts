@@ -235,13 +235,13 @@ export async function bulkCreateShifts(
     prisma.shiftType.findMany({ select: { id: true, name: true, startTime: true, endTime: true } }),
     prisma.guard.findMany({
       where: { status: true },
-      select: { id: true, guardCode: true },
+      select: { id: true, name: true }, // Changed from guardCode to name
     }),
   ]);
 
   const siteMap = new Map(sites.map(s => [s.name.toLowerCase(), s.id]));
   const shiftTypeMap = new Map(shiftTypes.map(st => [st.name.toLowerCase(), st]));
-  const guardMap = new Map(guards.map(g => [g.guardCode, g.id]));
+  const guardMap = new Map(guards.map(g => [g.name.toLowerCase(), g.id])); // Changed to use name instead of code
 
   const errors: string[] = [];
   const shiftsToCreate: any[] = [];
@@ -258,19 +258,19 @@ export async function bulkCreateShifts(
     // Splitting by comma is risky if names have commas. But names are usually "Site A", "Morning Shift".
     const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
 
-    // Expected: Site Name, Shift Type Name, Date, Guard Code
-    if (cols.length < 4) {
+    // Expected: Site Name, Shift Type Name, Date, Guard Name, Required Check-in Interval (minutes), Grace Period (minutes)
+    if (cols.length < 6) {
       errors.push(
-        `Row ${i + 1}: Insufficient columns. Expected at least 4 (Site Name, Shift Type Name, Date, Guard Code).`
+        `Row ${i + 1}: Insufficient columns. Expected at least 6 (Site Name, Shift Type Name, Date, Guard Name, Required Check-in Interval, Grace Period).`
       );
       continue;
     }
 
-    const [siteName, shiftTypeName, dateStr, guardCode] = cols;
+    const [siteName, shiftTypeName, dateStr, guardName, intervalStr, graceStr] = cols;
 
-    if (!siteName || !shiftTypeName || !dateStr || !guardCode) {
+    if (!siteName || !shiftTypeName || !dateStr || !guardName || !intervalStr || !graceStr) {
       errors.push(
-        `Row ${i + 1}: Missing required fields. Ensure Site Name, Shift Type Name, Date, and Guard Code are provided.`
+        `Row ${i + 1}: Missing required fields. Ensure Site Name, Shift Type Name, Date, Guard Name, Required Check-in Interval, and Grace Period are provided.`
       );
       continue;
     }
@@ -285,9 +285,9 @@ export async function bulkCreateShifts(
       errors.push(`Row ${i + 1}: Shift Type '${shiftTypeName}' not found.`);
     }
 
-    const guardId = guardMap.get(guardCode) || null;
-    if (!guardId) {
-      errors.push(`Row ${i + 1}: Guard with code '${guardCode}' not found or inactive.`);
+    const guardId = guardName ? guardMap.get(guardName.toLowerCase()) || null : null;
+    if (!guardId && guardName) { // Only show error if a guard name was provided but not found
+      errors.push(`Row ${i + 1}: Guard with name '${guardName}' not found or inactive.`);
     }
 
     // Validate Date
@@ -296,8 +296,20 @@ export async function bulkCreateShifts(
       errors.push(`Row ${i + 1}: Invalid date format '${dateStr}'. Expected YYYY-MM-DD.`);
     }
 
-    if (siteId && shiftType && dateRegex.test(dateStr) && guardId) {
-      // guardId is now mandatory
+    // Validate interval and grace minutes
+    const interval = parseInt(intervalStr, 10);
+    const grace = parseInt(graceStr, 10);
+
+    if (isNaN(interval) || interval <= 0) {
+      errors.push(`Row ${i + 1}: Invalid Required Check-in Interval '${intervalStr}'. Must be a positive integer.`);
+    }
+
+    if (isNaN(grace) || grace < 0) {
+      errors.push(`Row ${i + 1}: Invalid Grace Period '${graceStr}'. Must be a non-negative integer.`);
+    }
+
+    if (siteId && shiftType && dateRegex.test(dateStr) && (guardId || guardName === '') && !isNaN(interval) && interval > 0 && !isNaN(grace) && grace >= 0) {
+      // guardId is now optional (can be null)
       // Prepare data
       const dateObj = parse(dateStr, 'yyyy-MM-dd', new Date());
       const startDateTime = parse(`${dateStr} ${shiftType.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
@@ -308,41 +320,43 @@ export async function bulkCreateShifts(
       }
 
       // Check intra-batch overlap
-      const overlapInBatch = shiftsToCreate.find(s =>
-        s.guardId === guardId &&
-        s.startsAt < endDateTime &&
-        s.endsAt > startDateTime
-      );
+      if (guardId) {
+        const overlapInBatch = shiftsToCreate.find(s =>
+          s.guardId === guardId &&
+          s.startsAt < endDateTime &&
+          s.endsAt > startDateTime
+        );
 
-      if (overlapInBatch) {
-        errors.push(`Row ${i + 1}: Overlaps with another shift in this batch for guard ${guardCode}.`);
-        continue;
-      }
+        if (overlapInBatch) {
+          errors.push(`Row ${i + 1}: Overlaps with another shift in this batch for guard ${guardName}.`);
+          continue;
+        }
 
-      // Check DB overlap
-      const existingShift = await prisma.shift.findFirst({
-        where: {
-          guardId,
-          startsAt: { lt: endDateTime },
-          endsAt: { gt: startDateTime },
-        },
-      });
+        // Check DB overlap
+        const existingShift = await prisma.shift.findFirst({
+          where: {
+            guardId,
+            startsAt: { lt: endDateTime },
+            endsAt: { gt: startDateTime },
+          },
+        });
 
-      if (existingShift) {
-        errors.push(`Row ${i + 1}: Guard ${guardCode} already has a shift overlapping with this time.`);
-        continue;
+        if (existingShift) {
+          errors.push(`Row ${i + 1}: Guard ${guardName} already has a shift overlapping with this time.`);
+          continue;
+        }
       }
 
       shiftsToCreate.push({
         siteId,
         shiftTypeId: shiftType.id,
-        guardId: guardId,
+        guardId: guardId || null, // Allow null for unassigned shifts
         date: dateObj,
         startsAt: startDateTime,
         endsAt: endDateTime,
         status: 'scheduled',
-        requiredCheckinIntervalMins: 20, // Default
-        graceMinutes: 3, // Default
+        requiredCheckinIntervalMins: interval,
+        graceMinutes: grace,
       });
     }
   }

@@ -7,6 +7,7 @@ import { Serialized } from '@/lib/utils';
 import PaginationNav from '../../components/pagination-nav';
 import { MapPin, Clock, Filter, Globe } from 'lucide-react'; // Added Globe icon
 import CheckinFilterModal from './checkin-filter-modal';
+import CheckinExport from './checkin-export';
 import { format } from 'date-fns';
 
 // Define the type for a Checkin with its relations
@@ -88,13 +89,16 @@ export default function CheckinList({ checkins, page, perPage, totalCount, guard
           <h1 className="text-2xl font-bold text-gray-900">Check-ins</h1>
           <p className="text-sm text-gray-500 mt-1">View guard check-in history and status.</p>
         </div>
-        <button
-          onClick={() => setIsFilterOpen(true)}
-          className="inline-flex items-center justify-center h-10 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-        >
-          <Filter className="w-4 h-4 mr-2" />
-          Filter
-        </button>
+        <div className="flex items-center gap-2">
+          <CheckinExport initialFilters={initialFilters} />
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="inline-flex items-center justify-center h-10 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Filter
+          </button>
+        </div>
       </div>
 
       {/* Table Section */}

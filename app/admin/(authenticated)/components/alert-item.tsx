@@ -2,6 +2,7 @@
 
 import { Alert, Shift, Site, Guard, ShiftType, Admin } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
+import { Check, CheckCircle, Clock, Eye, User } from 'lucide-react';
 
 // Define types locally or import if shared (duplicating for now to ensure self-containment)
 type GuardWithOptionalRelations = Serialized<Guard>;
@@ -18,6 +19,7 @@ type AlertWithRelations = Serialized<Alert> & {
   site?: SiteWithOptionalRelations;
   shift?: ShiftWithOptionalRelations;
   resolverAdmin?: AdminWithOptionalRelations | null;
+  ackAdmin?: AdminWithOptionalRelations | null;
   status?: string;
 };
 
@@ -69,40 +71,38 @@ export default function AlertItem({ alert, onAcknowledge, onResolve, showResolut
             <h4 className="text-lg font-medium text-gray-900 mb-1">{alert.site?.name}</h4>
             <div className="text-sm text-gray-600 flex flex-wrap gap-x-4 gap-y-1">
               <span className="flex items-center gap-1">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
+                <User className="w-4 h-4 text-gray-400" />
                 {alert.shift?.guard?.name || 'Unassigned Guard'}
               </span>
               <span className="flex items-center gap-1">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <Clock className="w-4 h-4 text-gray-400" />
                 {alert.shift?.shiftType?.name}
               </span>
             </div>
 
+            {isAcknowledged && showResolutionDetails && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <h5 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-blue-600" />
+                  Acknowledgement Details
+                </h5>
+                <div className="text-sm text-blue-600 space-y-1">
+                  {alert.ackAdmin && (
+                    <p>
+                      <span className="font-medium text-blue-700">Acknowledged by:</span> {alert.ackAdmin.name}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-200">
+                    Acknowledged on {new Date(alert.acknowledgedAt!).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {isResolved && showResolutionDetails && (
               <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
                 <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                  <CheckCircle className="w-4 h-4 text-green-600" />
                   Resolution Details
                 </h5>
                 <div className="text-sm text-gray-600 space-y-1">
@@ -150,29 +150,14 @@ export default function AlertItem({ alert, onAcknowledge, onResolve, showResolut
 
               {isResolved && (
                 <span className="flex items-center gap-1.5 text-green-600 font-medium text-sm bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <Check className="w-4 h-4" />
                   Resolved
                 </span>
               )}
 
               {isAcknowledged && !isResolved && (
                 <span className="flex items-center gap-1.5 text-blue-600 font-medium text-sm bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
+                  <Eye className="w-4 h-4" />
                   Acknowledged
                 </span>
               )}

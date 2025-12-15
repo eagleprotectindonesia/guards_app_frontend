@@ -165,21 +165,16 @@ export default function AdminDashboard() {
   };
 
   const handleAcknowledge = async (alertId: string) => {
-    try {
-      await fetch(`/api/admin/alerts/${alertId}/acknowledge`, { method: 'POST' });
-      // Optimistic update: update local state immediately
-      setAlerts(prev =>
-        prev.map(a => {
-          if (a.id !== alertId) return a;
-          return {
-            ...a,
-            acknowledgedAt: new Date().toISOString(),
-          };
-        })
-      );
-    } catch (err) {
-      console.error(err);
-    }
+    // Optimistic update: update local state immediately
+    setAlerts(prev =>
+      prev.map(a => {
+        if (a.id !== alertId) return a;
+        return {
+          ...a,
+          acknowledgedAt: new Date().toISOString(),
+        };
+      })
+    );
   };
 
   const siteOptions = [

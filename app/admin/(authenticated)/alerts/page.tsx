@@ -6,8 +6,6 @@ import AlertFeed, { AlertWithRelations } from '../components/alert-feed';
 import PaginationNav from '../components/pagination-nav';
 import AlertExport from '../components/alert-export';
 
-
-
 type SSEAlertData =
   | { type: 'alert_created' | 'alert_updated'; alert: AlertWithRelations }
   | { type: 'alert_deleted'; alertId: string }
@@ -70,7 +68,7 @@ export default function AdminAlertsPage() {
               setAlerts(prev => {
                 if (prev.find(a => a.id === data.alert.id)) return prev;
                 const newAlerts = [data.alert, ...prev];
-                // Optional: Truncate to perPage to keep page size consistent? 
+                // Optional: Truncate to perPage to keep page size consistent?
                 // Or just let it grow until refresh? Let's let it grow for now.
                 return newAlerts;
               });
@@ -87,10 +85,10 @@ export default function AdminAlertsPage() {
           }
         } else if ('id' in data) {
           // Fallback logic
-           if (page === 1) {
-              setAlerts(prev => [data, ...prev]);
-              setTotalCount(prev => prev + 1);
-           }
+          if (page === 1) {
+            setAlerts(prev => [data, ...prev]);
+            setTotalCount(prev => prev + 1);
+          }
         }
       } catch (err) {
         console.error('Error parsing alert', err);
@@ -104,14 +102,23 @@ export default function AdminAlertsPage() {
     };
   }, [page]); // Re-run if page changes to update the closure
 
-  const handleResolve = (alertId: string) => {
-    // Optimistic Update: remove the resolved alert from the list
-    setAlerts(prev => prev.filter(a => a.id !== alertId));
+  const handleResolve = (alertId: string, resolutionData?: { outcome: string; note: string }) => {
+    setAlerts(prev =>
+      prev.map(a => {
+        if (a.id !== alertId) return a;
+        return {
+          ...a,
+          resolvedAt: new Date().toISOString(),
+          // resolutionType: resolutionData?.outcome || 'resolve',
+          resolutionNote: resolutionData?.note || '',
+          status: 'resolved',
+        };
+      })
+    );
   };
 
   const handleAcknowledge = async (alertId: string) => {
     try {
-      await fetch(`/api/admin/alerts/${alertId}/acknowledge`, { method: 'POST' });
       setAlerts(prev =>
         prev.map(a => {
           if (a.id !== alertId) return a;

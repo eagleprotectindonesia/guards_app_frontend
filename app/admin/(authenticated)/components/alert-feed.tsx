@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Alert, Shift, Site, Guard, ShiftType, Admin } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
 import AlertItem from './alert-item';
 import AlertResolutionModal from './alert-resolution-modal';
+import { Check } from 'lucide-react';
 
 type GuardWithOptionalRelations = Serialized<Guard>;
 type ShiftTypeWithOptionalRelations = Serialized<ShiftType>;
@@ -20,13 +21,14 @@ export type AlertWithRelations = Serialized<Alert> & {
   site?: SiteWithOptionalRelations;
   shift?: ShiftWithOptionalRelations;
   resolverAdmin?: AdminWithOptionalRelations | null;
+  ackAdmin?: AdminWithOptionalRelations | null;
   status?: string;
 };
 
 type AlertFeedProps = {
   alerts: AlertWithRelations[];
   onAcknowledge: (alertId: string) => Promise<void>;
-  onResolve: (alertId: string) => void;
+  onResolve: (alertId: string, resolutionData?: { outcome: string; note: string }) => void;
   showSiteFilter?: boolean;
   selectedSiteId?: string;
   onSiteSelect?: (siteId: string) => void;
@@ -69,9 +71,18 @@ export default function AlertFeed({
         body: JSON.stringify(body),
       });
 
-      onResolve(selectedAlertId); // Notify parent component of resolution
+      onResolve(selectedAlertId, { outcome, note }); // Notify parent component of resolution
 
       setSelectedAlertId(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAcknowledge = async (alertId: string) => {
+    try {
+      await fetch(`/api/admin/alerts/${alertId}/acknowledge`, { method: 'POST' });
+      onAcknowledge(alertId);
     } catch (err) {
       console.error(err);
     }
@@ -125,9 +136,7 @@ export default function AlertFeed({
       {filteredAlerts.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
           <div className="mx-auto w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-4">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+            <Check className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-medium text-gray-900">All Clear</h3>
           <p className="text-gray-500">No active alerts at the moment.</p>
@@ -138,7 +147,7 @@ export default function AlertFeed({
             <AlertItem
               key={alert.id}
               alert={alert}
-              onAcknowledge={onAcknowledge}
+              onAcknowledge={handleAcknowledge}
               onResolve={() => setSelectedAlertId(alert.id)} // Internal handler to open modal
               showResolutionDetails={showResolutionDetails}
             />

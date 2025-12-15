@@ -19,6 +19,7 @@ export async function GET(req: Request) {
         include: {
           site: true,
           resolverAdmin: true,
+          ackAdmin: true,
           shift: {
             include: {
               guard: true,

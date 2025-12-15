@@ -54,7 +54,7 @@ export async function createShift(prevState: ActionState, formData: FormData): P
     // Parse times
     // date is YYYY-MM-DD
     // startTime/endTime is HH:mm
-    const dateObj = parse(date, 'yyyy-MM-dd', new Date());
+    const dateObj = new Date(`${date}T00:00:00Z`);
     const startDateTime = parse(`${date} ${shiftType.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
     let endDateTime = parse(`${date} ${shiftType.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
 
@@ -138,7 +138,7 @@ export async function updateShift(id: string, prevState: ActionState, formData: 
       return { message: 'Selected Shift Type does not exist.', success: false };
     }
 
-    const dateObj = parse(date, 'yyyy-MM-dd', new Date());
+    const dateObj = new Date(`${date}T00:00:00Z`);
     const startDateTime = parse(`${date} ${shiftType.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
     let endDateTime = parse(`${date} ${shiftType.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
 
@@ -311,7 +311,7 @@ export async function bulkCreateShifts(
     if (siteId && shiftType && dateRegex.test(dateStr) && (guardId || guardName === '') && !isNaN(interval) && interval > 0 && !isNaN(grace) && grace >= 0) {
       // guardId is now optional (can be null)
       // Prepare data
-      const dateObj = parse(dateStr, 'yyyy-MM-dd', new Date());
+      const dateObj = new Date(`${dateStr}T00:00:00Z`);
       const startDateTime = parse(`${dateStr} ${shiftType.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
       let endDateTime = parse(`${dateStr} ${shiftType.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createShiftSchema } from '@/lib/validations';
 import { fromZonedTime } from 'date-fns-tz';
+import { ZodError } from 'zod';
 
 export async function GET(req: Request) {
   // TODO: Auth check (Admin only)
@@ -11,16 +12,10 @@ export async function GET(req: Request) {
     const from = searchParams.get('from');
     const to = searchParams.get('to');
 
-    const where: any = {};
-    if (siteId) {
-      where.siteId = siteId;
-    }
-    if (from && to) {
-      where.date = {
-        gte: new Date(from),
-        lte: new Date(to),
-      };
-    }
+    const where = {
+      ...(siteId && { siteId }),
+      ...(from && to && { date: { gte: new Date(from), lte: new Date(to) } }),
+    };
 
     const shifts = await prisma.shift.findMany({
       where,
@@ -105,10 +100,10 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(shift, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating shift:', error);
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

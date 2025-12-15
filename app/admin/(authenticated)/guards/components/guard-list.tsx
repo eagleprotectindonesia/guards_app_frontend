@@ -6,11 +6,12 @@ import { Serialized } from '@/lib/utils';
 import { deleteGuard, getAllGuardsForExport } from '../actions';
 import ConfirmDialog from '../../components/confirm-dialog';
 import ChangePasswordModal from './change-password-modal';
+import BulkCreateModal from './bulk-create-modal';
 import { DeleteButton } from '../../components/action-buttons';
 import PaginationNav from '../../components/pagination-nav';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { Pencil, Key, Download } from 'lucide-react';
+import { Pencil, Key, Download, Upload } from 'lucide-react';
 import Search from '../../components/search';
 
 type GuardListProps = {
@@ -23,6 +24,7 @@ type GuardListProps = {
 export default function GuardList({ guards, page, perPage, totalCount }: GuardListProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [passwordModalData, setPasswordModalData] = useState<{ id: string; name: string } | null>(null);
+  const [isBulkCreateOpen, setIsBulkCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const handleDeleteClick = (id: string) => {
@@ -90,6 +92,13 @@ export default function GuardList({ guards, page, perPage, totalCount }: GuardLi
           <div className="w-full md:w-64">
             <Search placeholder="Search guards..." />
           </div>
+          <button
+            onClick={() => setIsBulkCreateOpen(true)}
+            className="inline-flex items-center justify-center h-10 px-4 py-2 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm w-full md:w-auto"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Import CSV
+          </button>
           <button
             onClick={handleExportCSV}
             className="inline-flex items-center justify-center h-10 px-4 py-2 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm w-full md:w-auto"
@@ -207,6 +216,8 @@ export default function GuardList({ guards, page, perPage, totalCount }: GuardLi
         confirmText="Delete Guard"
         isPending={isPending}
       />
+
+      <BulkCreateModal isOpen={isBulkCreateOpen} onClose={() => setIsBulkCreateOpen(false)} />
 
       {passwordModalData && (
         <ChangePasswordModal

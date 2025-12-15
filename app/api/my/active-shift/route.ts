@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedGuard } from '@/lib/guard-auth';
 import { prisma } from '@/lib/prisma';
+import { calculateCheckInWindow } from '@/lib/scheduling';
 
 export async function GET(req: Request) {
   const guard = await getAuthenticatedGuard();
@@ -25,6 +26,18 @@ export async function GET(req: Request) {
       include: { site: true, shiftType: true, guard: true, attendance: true }, // Include new relations
     });
 
+    let activeShiftWithWindow = null;
+    if (activeShift) {
+      const window = calculateCheckInWindow(
+        activeShift.startsAt,
+        activeShift.requiredCheckinIntervalMins,
+        activeShift.graceMinutes,
+        now,
+        activeShift.lastHeartbeatAt
+      );
+      activeShiftWithWindow = { ...activeShift, checkInWindow: window };
+    }
+
     // Find the next upcoming shift (that isn't considered active due to early start)
     const nextShift = await prisma.shift.findFirst({
       where: {
@@ -38,7 +51,7 @@ export async function GET(req: Request) {
       include: { site: true, shiftType: true, guard: true, attendance: true }, // Include same relations as active shift
     });
 
-    return NextResponse.json({ activeShift, nextShift });
+    return NextResponse.json({ activeShift: activeShiftWithWindow, nextShift });
   } catch (error) {
     console.error('Error fetching shifts:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

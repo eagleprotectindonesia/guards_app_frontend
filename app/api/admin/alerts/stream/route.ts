@@ -24,12 +24,10 @@ export async function GET(req: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       // 1. Send Backfill (Open Alerts)
-      const whereCondition: any = {
+      const whereCondition = {
         resolvedAt: null,
+        ...(siteId ? { siteId } : {}),
       };
-      if (siteId) {
-        whereCondition.siteId = siteId;
-      }
 
       const openAlerts = await prisma.alert.findMany({
         where: whereCondition,
@@ -82,6 +80,34 @@ export async function GET(req: Request) {
         controller.enqueue(encoder.encode(activeEvent));
       }
 
+      // 1c. Send Upcoming Shifts (Global Mode Only)
+      if (!siteId) {
+        const now = new Date();
+        const upcomingEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+        const upcomingShifts = await prisma.shift.findMany({
+          where: {
+            status: 'scheduled',
+            startsAt: {
+              gt: now,
+              lte: upcomingEnd,
+            },
+          },
+          include: {
+            shiftType: true,
+            guard: true,
+            site: true,
+          },
+          orderBy: {
+            startsAt: 'asc',
+          },
+          take: 50,
+        });
+
+        const upcomingEvent = `event: upcoming_shifts\ndata: ${JSON.stringify(upcomingShifts)}\n\n`;
+        controller.enqueue(encoder.encode(upcomingEvent));
+      }
+
       // 2. Subscribe to Redis
       if (siteId) {
         const channel = `alerts:site:${siteId}`;
@@ -95,6 +121,7 @@ export async function GET(req: Request) {
         // Global Mode: Listen to ALL site alerts AND dashboard stats
         await subscriber.psubscribe('alerts:site:*');
         await subscriber.subscribe('dashboard:active-shifts');
+        await subscriber.subscribe('dashboard:upcoming-shifts');
 
         subscriber.on('pmessage', (pattern, channel, message) => {
           if (pattern === 'alerts:site:*') {
@@ -106,6 +133,9 @@ export async function GET(req: Request) {
         subscriber.on('message', (channel, message) => {
           if (channel === 'dashboard:active-shifts') {
             const event = `event: active_shifts\ndata: ${message}\n\n`;
+            controller.enqueue(encoder.encode(event));
+          } else if (channel === 'dashboard:upcoming-shifts') {
+            const event = `event: upcoming_shifts\ndata: ${message}\n\n`;
             controller.enqueue(encoder.encode(event));
           }
         });

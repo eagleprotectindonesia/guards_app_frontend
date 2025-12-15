@@ -26,6 +26,12 @@ type ActiveSiteData = {
   shifts: ActiveShiftInDashboard[];
 };
 
+type UpcomingShift = Serialized<Shift> & {
+  guard: GuardWithOptionalRelations | null;
+  shiftType: ShiftTypeWithOptionalRelations;
+  site: SiteWithOptionalRelations;
+};
+
 export type AlertWithRelations = Serialized<Alert> & {
   site?: SiteWithOptionalRelations;
   shift?: ShiftWithOptionalRelations;
@@ -42,6 +48,7 @@ type SSEAlertData =
 export default function AdminDashboard() {
   const [sites, setSites] = useState<SiteWithOptionalRelations[]>([]);
   const [activeSites, setActiveSites] = useState<ActiveSiteData[]>([]);
+  const [upcomingShifts, setUpcomingShifts] = useState<UpcomingShift[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState(''); // Empty string = All Sites
   const [alerts, setAlerts] = useState<AlertWithRelations[]>([]);
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');
@@ -93,6 +100,15 @@ export default function AdminDashboard() {
         setActiveSites(data);
       } catch (err) {
         console.error('Error parsing active_shifts', err);
+      }
+    });
+
+    es.addEventListener('upcoming_shifts', (e: MessageEvent) => {
+      try {
+        const data: UpcomingShift[] = JSON.parse(e.data);
+        setUpcomingShifts(data);
+      } catch (err) {
+        console.error('Error parsing upcoming_shifts', err);
       }
     });
 
@@ -251,6 +267,40 @@ export default function AdminDashboard() {
                           </span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* New Card: Upcoming Shifts */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="font-semibold text-gray-900">Upcoming (24h)</h3>
+            </div>
+            <div className="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">
+              {upcomingShifts.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-sm text-gray-500">No upcoming shifts.</p>
+                </div>
+              ) : (
+                upcomingShifts.map(shift => (
+                  <div key={shift.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-900 text-sm truncate max-w-[150px]" title={shift.site?.name}>
+                        {shift.site?.name}
+                      </span>
+                      <span className="text-xs text-gray-500 font-mono">
+                         {new Date(shift.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-600 flex items-center gap-2">
+                      <div className={`w-1.5 h-1.5 rounded-full ${shift.guard ? 'bg-blue-400' : 'bg-red-400'}`}></div>
+                      <span className="truncate">
+                        {shift.guard?.name || 'Unassigned'}
+                        <span className="text-gray-400"> ({shift.shiftType?.name})</span>
+                      </span>
                     </div>
                   </div>
                 ))

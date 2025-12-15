@@ -1,10 +1,16 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { ShiftWithRelations } from '@/app/admin/(authenticated)/shifts/components/shift-list';
 import { useGuardApi } from '@/app/guard/(authenticated)/hooks/use-guard-api';
+import { CheckInWindowResult } from '@/lib/scheduling';
+
+type ActiveShiftWithWindow = ShiftWithRelations & {
+  checkInWindow?: CheckInWindowResult;
+};
 
 type CheckInCardProps = {
-  activeShift: ShiftWithRelations | null;
+  activeShift: ActiveShiftWithWindow | null;
   loading: boolean;
   status: string;
   currentTime: Date;
@@ -16,79 +22,88 @@ export default function CheckInCard({
   activeShift,
   loading,
   status,
-  currentTime,
+  // currentTime, // Not needed as primary source of truth anymore, used for local timer
   setStatus,
   fetchShift,
 }: CheckInCardProps) {
   const { fetchWithAuth } = useGuardApi();
+  const [timeLeft, setTimeLeft] = useState<string>('');
+  const [canCheckIn, setCanCheckIn] = useState(false);
 
-  // Calculate Next Due & Window Status based on Worker Logic (Fixed Intervals)
-  let nextDue: Date | null = null;
-  let canCheckIn = false;
-  let windowMessage = '';
+  // Sync state with activeShift window data
+  useEffect(() => {
+    if (!activeShift?.checkInWindow) {
+      setCanCheckIn(false);
+      setTimeLeft('');
+      return;
+    }
+    const formatTime = (seconds: number) => {
+      if (seconds > 60) return `${Math.ceil(seconds / 60)} menit`;
+      return `${seconds} detik`;
+    };
+    
+    const updateTimer = () => {
+      const window = activeShift.checkInWindow!;
+      const now = new Date().getTime();
+      const currentSlotStartMs = new Date(window.currentSlotStart).getTime();
+      const currentSlotEndMs = new Date(window.currentSlotEnd).getTime();
+      const nextSlotStartMs = new Date(window.nextSlotStart).getTime();
 
-  if (activeShift) {
-    const startMs = new Date(activeShift.startsAt).getTime();
-    const intervalMs = activeShift.requiredCheckinIntervalMins * 60000;
-    const graceMs = activeShift.graceMinutes * 60000;
-    const nowMs = currentTime.getTime();
+      let isWindowOpen = false;
+      let message = '';
 
-    // The first check-in should be at shift start + first interval, regardless of when attendance is recorded
-    const firstCheckInMs = startMs + intervalMs;
-
-    // If current time is before the first check-in time
-    if (nowMs < firstCheckInMs) {
-      nextDue = new Date(firstCheckInMs);
-    } else {
-      // After the first check-in time, calculate based on intervals since the first check-in
-      const elapsedSinceFirstCheckIn = nowMs - firstCheckInMs;
-      const currentSlotIndex = Math.floor(elapsedSinceFirstCheckIn / intervalMs);
-
-      // Calculate the start time of the current slot
-      const currentSlotStartMs = firstCheckInMs + currentSlotIndex * intervalMs;
-      const currentSlotEndMs = currentSlotStartMs + graceMs;
-
-      // Check if guard has already completed this slot
-      let isCurrentCompleted = false;
-      if (activeShift.lastHeartbeatAt) {
-        const lastHeartbeatMs = new Date(activeShift.lastHeartbeatAt).getTime();
-        if (lastHeartbeatMs >= currentSlotStartMs) {
-          isCurrentCompleted = true;
-        }
-      }
-
-      if (nowMs > currentSlotEndMs) {
-        // Missed current window, move to next slot
-        nextDue = new Date(currentSlotStartMs + intervalMs);
-      } else {
-        // In current window
-        if (isCurrentCompleted) {
-          // Already checked in for this slot, move to next
-          nextDue = new Date(currentSlotStartMs + intervalMs);
+      if (window.status === 'completed') {
+        // Waiting for next slot
+        const diff = Math.ceil((nextSlotStartMs - now) / 1000);
+        if (diff > 0) {
+          message = `Check in berikutnya dalam ${formatTime(diff)}`;
         } else {
-          // Check in for current slot if possible
-          nextDue = new Date(currentSlotStartMs);
+          // We might be in a drift state where frontend time > next slot but API hasn't updated.
+          // In this case, we should probably fetchShift?
+          // For now, just say "Opening..."
+          message = 'Mempersiapkan slot berikutnya...';
         }
+        isWindowOpen = false;
+      } else if (window.status === 'early') {
+        // Early for the very first slot (or general early)
+        const diff = Math.ceil((currentSlotStartMs - now) / 1000);
+        if (diff > 0) {
+          message = `Check in dibuka dalam ${formatTime(diff)}`;
+        } else {
+          message = 'Check-in Buka...';
+          isWindowOpen = true; // Technically if local time says open, let them try?
+          // But relies on next fetch to confirm 'open' status from API is safer.
+          // However, to be responsive, if local time passes start, we show button.
+        }
+      } else if (window.status === 'open') {
+        // Open now, counting down to close
+        const diff = Math.ceil((currentSlotEndMs - now) / 1000);
+        if (diff > 0) {
+          message = `Sisa waktu: ${formatTime(diff)}`;
+          isWindowOpen = true;
+        } else {
+          message = 'Jendela terlewat';
+          isWindowOpen = false;
+        }
+      } else if (window.status === 'late') {
+        // Late for current, waiting for next
+        const diff = Math.ceil((nextSlotStartMs - now) / 1000);
+        if (diff > 0) {
+          message = `Check in berikutnya dalam ${formatTime(diff)}`;
+        } else {
+          message = 'Mempersiapkan slot berikutnya...';
+        }
+        isWindowOpen = false;
       }
-    }
 
-    const graceEndTime = new Date(nextDue.getTime() + graceMs);
+      setTimeLeft(message);
+      setCanCheckIn(isWindowOpen);
+    };
 
-    canCheckIn = currentTime >= nextDue && currentTime <= graceEndTime;
-
-    if (currentTime < nextDue) {
-      const diffSec = Math.ceil((nextDue.getTime() - currentTime.getTime()) / 1000);
-      if (diffSec > 60) {
-        windowMessage = `Check in dibuka dalam ${Math.ceil(diffSec / 60)} menit`;
-      } else {
-        windowMessage = `Check in dibuka dalam ${diffSec} detik`;
-      }
-    } else if (currentTime > graceEndTime) {
-      windowMessage = 'Jendela terlewat';
-    } else {
-      windowMessage = 'Check-in Buka';
-    }
-  }
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [activeShift]);
 
   const handleCheckIn = async () => {
     if (!activeShift) return;
@@ -132,7 +147,7 @@ export default function CheckInCard({
         setStatus(`Error: ${data.message || data.error || 'Check-in gagal.'}`);
       } else {
         setStatus(`Berhasil Check-in! Status: ${data.status}`);
-        fetchShift();
+        fetchShift(); // Refresh to get next window
       }
     } catch (err) {
       setStatus('Kesalahan Jaringan');
@@ -140,15 +155,26 @@ export default function CheckInCard({
     }
   };
 
+  if (!activeShift?.checkInWindow) {
+    return null;
+  }
+
+  const { checkInWindow } = activeShift;
+  // Display nextDue based on status
+  let nextDueDisplay = new Date(checkInWindow.nextSlotStart);
+  if (checkInWindow.status === 'open' || checkInWindow.status === 'early') {
+    nextDueDisplay = new Date(checkInWindow.currentSlotStart);
+  }
+
   return (
     <div className="border rounded-lg shadow-sm p-6 bg-white mb-6">
       <div className="mb-6">
-        <p className="text-sm text-gray-500">Check-in Berikutnya Jatuh Tempo:</p>
-        <p className="text-3xl font-mono font-bold text-blue-600">{nextDue ? nextDue.toLocaleTimeString() : '--:--'}</p>
-        <p className="text-xs text-gray-400 mt-1">Masa tenggang: {activeShift?.graceMinutes} menit</p>
-        <p className={`text-sm font-medium mt-2 ${canCheckIn ? 'text-green-600' : 'text-amber-600'}`}>
-          {windowMessage}
+        <p className="text-sm text-gray-500">Check-in Berikutnya:</p>
+        <p className="text-3xl font-mono font-bold text-blue-600">
+          {nextDueDisplay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </p>
+        <p className="text-xs text-gray-400 mt-1">Masa tenggang: {activeShift.graceMinutes} menit</p>
+        <p className={`text-sm font-medium mt-2 ${canCheckIn ? 'text-green-600' : 'text-amber-600'}`}>{timeLeft}</p>
       </div>
 
       {canCheckIn && (

@@ -57,8 +57,8 @@ export const createGuardSchema = z.object({
     ),
   guardCode: z.string().max(10).optional(),
   status: z.boolean().optional(),
-  joinDate: z.string().datetime().optional(),
-  leftDate: z.string().datetime().optional(),
+  joinDate: z.iso.datetime().optional(),
+  leftDate: z.iso.datetime().optional(),
   note: z.string().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters long'), // Required for creation
 });

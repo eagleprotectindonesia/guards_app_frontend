@@ -5,6 +5,7 @@ import { createGuardSchema, updateGuardSchema, updateGuardPasswordSchema } from 
 import { hashPassword, serialize, Serialized } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 import { Guard } from '@prisma/client';
+import { parse, isValid } from 'date-fns';
 
 export type ActionState = {
   message?: string;
@@ -29,7 +30,7 @@ export async function createGuard(prevState: ActionState, formData: FormData): P
     name: formData.get('name'),
     phone: formData.get('phone'),
     guardCode: formData.get('guardCode')?.toString() || undefined,
-    status: formData.get('status') === 'true' ? true : (formData.get('status') === 'false' ? false : undefined),
+    status: formData.get('status') === 'true' ? true : formData.get('status') === 'false' ? false : undefined,
     joinDate: formData.get('joinDate')?.toString() || undefined,
     leftDate: formData.get('leftDate')?.toString() || undefined,
     note: formData.get('note')?.toString() || undefined,
@@ -82,7 +83,7 @@ export async function updateGuard(id: string, prevState: ActionState, formData: 
     name: formData.get('name'),
     phone: formData.get('phone'),
     guardCode: formData.get('guardCode')?.toString() || undefined,
-    status: formData.get('status') === 'true' ? true : (formData.get('status') === 'false' ? false : undefined),
+    status: formData.get('status') === 'true' ? true : formData.get('status') === 'false' ? false : undefined,
     joinDate: formData.get('joinDate')?.toString() || undefined,
     leftDate: formData.get('leftDate')?.toString() || undefined,
     note: formData.get('note')?.toString() || undefined,
@@ -120,7 +121,11 @@ export async function updateGuard(id: string, prevState: ActionState, formData: 
   return { success: true, message: 'Guard updated successfully' };
 }
 
-export async function updateGuardPassword(id: string, prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateGuardPassword(
+  id: string,
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const validatedFields = updateGuardPasswordSchema.safeParse({
     password: formData.get('password'),
     confirmPassword: formData.get('confirmPassword'),
@@ -199,7 +204,12 @@ export async function bulkCreateGuards(
       continue;
     }
 
-    const [name, phone, guardCode, note, joinDateStr, password] = cols;
+    const [name, phoneRaw, guardCode, note, joinDateStr, password] = cols;
+    let phone = phoneRaw;
+
+    if (phone && !phone.startsWith('+')) {
+      phone = '+' + phone;
+    }
 
     if (!name || !phone) {
       errors.push(`Row ${i + 1}: Name and Phone are required.`);
@@ -214,9 +224,30 @@ export async function bulkCreateGuards(
     // Prepare data for validation
     let joinDateISO: string | undefined = undefined;
     if (joinDateStr) {
-      const d = new Date(joinDateStr);
-      if (isNaN(d.getTime())) {
-        errors.push(`Row ${i + 1}: Invalid Join Date '${joinDateStr}'. Expected YYYY-MM-DD.`);
+      let d: Date | undefined;
+      const cleanDateStr = joinDateStr.trim();
+
+      // Try standard Date constructor first (handles ISO yyyy-MM-dd)
+      const tryDate = new Date(cleanDateStr);
+      // Valid if not NaN and year is reasonable (e.g. > 1900) to avoid "Invalid Date"
+      if (!isNaN(tryDate.getTime())) {
+        d = tryDate;
+      } else {
+        // Fallback to specific formats common in CSVs using date-fns
+        const formats = ['dd/MM/yyyy', 'MM/dd/yyyy', 'dd-MM-yyyy'];
+        for (const fmt of formats) {
+          const parsed = parse(cleanDateStr, fmt, new Date());
+          if (isValid(parsed)) {
+            d = parsed;
+            break;
+          }
+        }
+      }
+
+      if (!d || isNaN(d.getTime())) {
+        errors.push(
+          `Row ${i + 1}: Invalid Join Date '${joinDateStr}'. Expected YYYY-MM-DD, DD/MM/YYYY, or MM/DD/YYYY.`
+        );
         continue;
       }
       joinDateISO = d.toISOString();
@@ -289,14 +320,6 @@ export async function bulkCreateGuards(
         errors: existingPhones.map(p => `Phone '${p}' is already registered.`),
       };
     }
-
-    // Bulk Create
-    // Note: createGuardSchema returns joinDate as string (ISO).
-    // prisma.guard.createMany expects DateTime object for DateTime fields?
-    // Let's check schema.prisma: joinDate DateTime?
-    // Prisma client usually expects Date object or ISO string.
-    // However, createMany with `data` array usually requires correct types.
-    // Let's convert joinDate back to Date object if it exists.
 
     const finalData = guardsToCreate.map(g => ({
       ...g,

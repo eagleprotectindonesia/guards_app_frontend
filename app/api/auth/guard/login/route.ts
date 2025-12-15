@@ -3,6 +3,7 @@ import { cookies, headers } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 import { z } from 'zod';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
@@ -38,7 +39,6 @@ export async function POST(req: Request) {
     const guard = await prisma.guard.findUnique({
       where: { phone },
     });
-    console.log(guard);
 
     if (!guard) {
       return NextResponse.json({ message: 'Invalid Guard' }, { status: 401 });
@@ -59,6 +59,19 @@ export async function POST(req: Request) {
       where: { id: guard.id },
       data: { tokenVersion: { increment: 1 } },
     });
+
+    // Notify other active sessions to logout
+    try {
+      await redis.publish(
+        `guard:${guard.id}`,
+        JSON.stringify({
+          type: 'session_revoked',
+          newTokenVersion: updatedGuard.tokenVersion,
+        })
+      );
+    } catch (error) {
+      console.error('Failed to publish session revocation event:', error);
+    }
 
     // Generate JWT token with token version
     const token = jwt.sign({ guardId: guard.id, tokenVersion: updatedGuard.tokenVersion }, JWT_SECRET, {

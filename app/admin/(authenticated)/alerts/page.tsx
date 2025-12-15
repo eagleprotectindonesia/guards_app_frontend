@@ -2,20 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Alert, Shift, Site, Guard, ShiftType, Admin } from '@prisma/client';
-import { Serialized } from '@/lib/utils';
 import AlertFeed, { AlertWithRelations } from '../components/alert-feed';
 import PaginationNav from '../components/pagination-nav';
+import AlertExport from '../components/alert-export';
 
-type GuardWithOptionalRelations = Serialized<Guard>;
-type ShiftTypeWithOptionalRelations = Serialized<ShiftType>;
-type SiteWithOptionalRelations = Serialized<Site>;
-type AdminWithOptionalRelations = Serialized<Admin>;
 
-type ShiftWithOptionalRelations = Serialized<Shift> & {
-  guard?: GuardWithOptionalRelations | null;
-  shiftType?: ShiftTypeWithOptionalRelations;
-};
 
 type SSEAlertData =
   | { type: 'alert_created' | 'alert_updated'; alert: AlertWithRelations }
@@ -143,6 +134,7 @@ export default function AdminAlertsPage() {
           <p className="text-sm text-gray-500">Comprehensive view of all system alerts</p>
         </div>
         <div className="flex items-center gap-4">
+          <AlertExport />
           <div
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
               connectionStatus === 'Connected'

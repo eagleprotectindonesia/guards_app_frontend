@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthenticatedGuard } from '@/lib/guard-auth';
 import { z } from 'zod'; // Import z for Zod validation
+import { calculateDistance } from '@/lib/utils';
 
 // Define a schema for the incoming request body
 const attendanceSchema = z.object({
@@ -9,7 +10,7 @@ const attendanceSchema = z.object({
   location: z.object({
     lat: z.number(),
     lng: z.number(),
-  }).optional(),
+  }),
 });
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +29,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // 1. Fetch Shift
     const shift = await prisma.shift.findUnique({
       where: { id: shiftId },
-      include: { attendance: true }, // Include attendance to check if it already exists
+      include: { attendance: true, site: true }, // Include attendance to check if it already exists
     });
 
     if (!shift) {
@@ -42,6 +43,44 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     if (shift.attendance) {
       return NextResponse.json({ error: 'Attendance already recorded for this shift' }, { status: 400 });
+    }
+
+    // 2.5 Distance Check
+    const maxDistanceStr = process.env.MAX_CHECKIN_DISTANCE_METERS;
+
+    if (maxDistanceStr) {
+      const maxDistance = parseInt(maxDistanceStr, 10);
+
+      if (!isNaN(maxDistance) && maxDistance > 0) {
+        if (
+          !parsedBody.location ||
+          typeof parsedBody.location.lat !== 'number' ||
+          typeof parsedBody.location.lng !== 'number'
+        ) {
+          return NextResponse.json({ error: 'Location permission is required for this site.' }, { status: 400 });
+        }
+
+        if (shift.site.latitude != null && shift.site.longitude != null) {
+          const distance = calculateDistance(
+            parsedBody.location.lat,
+            parsedBody.location.lng,
+            shift.site.latitude,
+            shift.site.longitude
+          );
+          console.log(distance);
+
+          if (distance > maxDistance) {
+            return NextResponse.json(
+              {
+                error: `Anda berada terlalu jauh dari lokasi penugasan. Jarak saat ini: ${Math.round(
+                  distance
+                )}m (Maksimal: ${maxDistance}m). Silakan pindah ke lokasi yang ditentukan.`,
+              },
+              { status: 400 }
+            );
+          }
+        }
+      }
     }
 
     // Prepare metadata if location data is present
@@ -74,7 +113,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ attendance: result.attendance }, { status: 201 });
   } catch (error: unknown) {
     console.error('Error recording attendance:', error);
-    if (error instanceof z.ZodError) { // Use z.ZodError for Zod validation errors
+    if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

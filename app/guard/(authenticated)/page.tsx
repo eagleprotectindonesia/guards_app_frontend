@@ -59,6 +59,21 @@ async function changeGuardPasswordAction(
   }
 }
 
+const parseShiftDates = (shift: any) => {
+  if (!shift) return null;
+  return {
+    ...shift,
+    startsAt: new Date(shift.startsAt),
+    endsAt: new Date(shift.endsAt),
+    checkInWindow: shift.checkInWindow ? {
+      ...shift.checkInWindow,
+      currentSlotStart: new Date(shift.checkInWindow.currentSlotStart),
+      currentSlotEnd: new Date(shift.checkInWindow.currentSlotEnd),
+      nextSlotStart: new Date(shift.checkInWindow.nextSlotStart),
+    } : undefined,
+  };
+};
+
 export default function GuardPage() {
   const router = useRouter(); // Initialize router
   const { fetchWithAuth } = useGuardApi();
@@ -72,6 +87,8 @@ export default function GuardPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
+    if (loading) return;
+
     // Update current time every second to check window validity
     const timer = setInterval(() => {
       const now = new Date();
@@ -89,7 +106,8 @@ export default function GuardPage() {
         // When there's no active shift, check if we've passed the scheduled start time of the next shift
         const FIVE_MINUTES_IN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
         if (nextShift) {
-          const shiftStartWithGrace = new Date(nextShift.startsAt.getTime() - FIVE_MINUTES_IN_MS);
+          const startTime = new Date(nextShift.startsAt);
+          const shiftStartWithGrace = new Date(startTime.getTime() - FIVE_MINUTES_IN_MS);
           if (now >= shiftStartWithGrace) {
             // Fetch to see if the next shift is now the active shift
             fetchShift();
@@ -98,7 +116,7 @@ export default function GuardPage() {
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [activeShift, nextShift]);
+  }, [activeShift, nextShift, loading]);
 
   const fetchGuardDetails = async () => {
     try {
@@ -131,13 +149,13 @@ export default function GuardPage() {
       }
       const data = await res.json();
       if (data.activeShift) {
-        setActiveShift(data.activeShift);
+        setActiveShift(parseShiftDates(data.activeShift));
         // If guardDetails are not yet set, set guardName from activeShift
       } else {
         setActiveShift(null);
       }
       if (data.nextShift) {
-        setNextShift(data.nextShift);
+        setNextShift(parseShiftDates(data.nextShift));
       } else {
         setNextShift(null);
       }

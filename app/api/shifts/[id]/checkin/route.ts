@@ -4,6 +4,7 @@ import { checkInSchema } from '@/lib/validations';
 import { getAuthenticatedGuard } from '@/lib/guard-auth';
 import { ZodError } from 'zod';
 import { calculateCheckInWindow } from '@/lib/scheduling';
+import { calculateDistance } from '@/lib/utils';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: shiftId } = await params;
@@ -38,6 +39,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Shift is not active' }, { status: 400 });
     }
 
+    // 2.5 Distance Check
+    const maxDistanceStr = process.env.MAX_CHECKIN_DISTANCE_METERS;
+    if (maxDistanceStr) {
+      const maxDistance = parseInt(maxDistanceStr, 10);
+      if (!isNaN(maxDistance) && maxDistance > 0) {
+        if (!body.location || typeof body.location.lat !== 'number' || typeof body.location.lng !== 'number') {
+          return NextResponse.json({ error: 'Location permission is required for this site.' }, { status: 400 });
+        }
+
+        if (shift.site.latitude != null && shift.site.longitude != null) {
+          const distance = calculateDistance(
+            body.location.lat,
+            body.location.lng,
+            shift.site.latitude,
+            shift.site.longitude
+          );
+
+          if (distance > maxDistance) {
+            return NextResponse.json({
+              error: `Anda berada terlalu jauh dari lokasi penugasan. Jarak saat ini: ${Math.round(distance)}m (Maksimal: ${maxDistance}m). Silakan pindah ke lokasi yang ditentukan.`,
+            }, { status: 400 });
+          }
+        }
+      }
+    }
+
     // 3. Calculate Status using Shared Logic
     const windowResult = calculateCheckInWindow(
       shift.startsAt,
@@ -54,7 +81,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // 'late' means missed window, but technically they can still "check in" as late?
     // The previous logic was strict: "Too late to check in".
     // "Already checked in".
-    
+
     if (windowResult.status === 'completed') {
       return NextResponse.json({ error: 'Already checked in for this interval' }, { status: 400 });
     }
@@ -62,7 +89,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (windowResult.status === 'late') {
        return NextResponse.json({ error: 'Too late to check in for this interval' }, { status: 400 });
     }
-    
+
     if (windowResult.status === 'early') {
        return NextResponse.json({ error: 'Too early to check in' }, { status: 400 });
     }

@@ -31,7 +31,7 @@ export function AttendanceRecord({
     setMessage('');
     setMessageType('');
 
-    let locationData: { lat: number; lng: number } | undefined;
+    let locationData: { lat: number; lng: number } | null = null;
 
     if (navigator.geolocation) {
       setStatus('Mendapatkan lokasi...');
@@ -48,9 +48,19 @@ export function AttendanceRecord({
           lng: position.coords.longitude,
         };
       } catch (error) {
-        console.warn('Geolocation failed or timed out:', error);
-        // Continue without location
+        console.error('Geolocation failed or timed out:', error);
+        setIsRecording(false);
+        setMessage('Lokasi diperlukan untuk merekam kehadiran. Pastikan izin lokasi diaktifkan dan coba lagi.');
+        setMessageType('error');
+        setStatus('Gagal mendapatkan lokasi');
+        return;
       }
+    } else {
+      setIsRecording(false);
+      setMessage('Layanan lokasi tidak tersedia di perangkat ini. Lokasi diperlukan untuk merekam kehadiran.');
+      setMessageType('error');
+      setStatus('Layanan lokasi tidak tersedia');
+      return;
     }
 
     setStatus('Merekam...');
@@ -66,7 +76,8 @@ export function AttendanceRecord({
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || 'Gagal merekam kehadiran');
+        // The API will return the distance exceeded error message as part of errorData.error
+        throw new Error(errorData.error || errorData.message || 'Gagal merekam kehadiran');
       }
 
       setMessage('Kehadiran berhasil direkam!');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ShiftWithRelations } from '@/app/admin/(authenticated)/shifts/components/shift-list';
 import { useGuardApi } from '@/app/guard/(authenticated)/hooks/use-guard-api';
 import { CheckInWindowResult } from '@/lib/scheduling';
@@ -29,6 +29,7 @@ export default function CheckInCard({
   const { fetchWithAuth } = useGuardApi();
   const [timeLeft, setTimeLeft] = useState<string>('');
   const [canCheckIn, setCanCheckIn] = useState(false);
+  const expiryRefreshRef = useRef<string | null>(null);
 
   // Sync state with activeShift window data
   useEffect(() => {
@@ -41,7 +42,7 @@ export default function CheckInCard({
       if (seconds > 60) return `${Math.ceil(seconds / 60)} menit`;
       return `${seconds} detik`;
     };
-    
+
     const updateTimer = () => {
       const window = activeShift.checkInWindow!;
       const now = new Date().getTime();
@@ -51,6 +52,26 @@ export default function CheckInCard({
 
       let isWindowOpen = false;
       let message = '';
+
+      // 1. Auto-refresh if we pass the window end time while in early/open state (Expiry)
+      if ((window.status === 'early' || window.status === 'open') && now > currentSlotEndMs) {
+        const slotKey = new Date(window.currentSlotStart).toISOString();
+        if (expiryRefreshRef.current !== slotKey) {
+          expiryRefreshRef.current = slotKey;
+          // Trigger refresh to get 'late' status from server
+          fetchShift().catch(console.error);
+        }
+      }
+
+      // 2. Auto-refresh if we reach the next slot start time while in late/completed state (Opening)
+      if ((window.status === 'late' || window.status === 'completed') && now >= nextSlotStartMs) {
+        const nextSlotKey = new Date(window.nextSlotStart).toISOString();
+        if (expiryRefreshRef.current !== nextSlotKey) {
+          expiryRefreshRef.current = nextSlotKey;
+          // Trigger refresh to get 'open' status for the new slot
+          fetchShift().catch(console.error);
+        }
+      }
 
       if (window.status === 'completed') {
         // Waiting for next slot
@@ -70,10 +91,16 @@ export default function CheckInCard({
         if (diff > 0) {
           message = `Check in dibuka dalam ${formatTime(diff)}`;
         } else {
-          message = 'Check-in Buka...';
-          isWindowOpen = true; // Technically if local time says open, let them try?
-          // But relies on next fetch to confirm 'open' status from API is safer.
-          // However, to be responsive, if local time passes start, we show button.
+          // Check if we also passed the end time (missed the window locally)
+          const endDiff = Math.ceil((currentSlotEndMs - now) / 1000);
+          if (endDiff > 0) {
+            message = 'Check-in Buka...';
+            isWindowOpen = true;
+          } else {
+            message = 'Jendela terlewat';
+            isWindowOpen = false;
+            fetchShift().catch(console.error);
+          }
         }
       } else if (window.status === 'open') {
         // Open now, counting down to close
@@ -103,7 +130,7 @@ export default function CheckInCard({
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [activeShift]);
+  }, [activeShift, fetchShift]);
 
   const handleCheckIn = async () => {
     if (!activeShift) return;
@@ -125,9 +152,13 @@ export default function CheckInCard({
           lng: position.coords.longitude,
         };
       } catch (error) {
-        console.warn('Geolocation failed or timed out:', error);
-        // Continue without location
+        console.error('Geolocation failed or timed out:', error);
+        setStatus('Lokasi diperlukan untuk melakukan check-in. Pastikan izin lokasi diaktifkan dan coba lagi.');
+        return;
       }
+    } else {
+      setStatus('Layanan lokasi tidak tersedia di perangkat ini. Lokasi diperlukan untuk check-in.');
+      return;
     }
 
     setStatus('Check-in...');

@@ -44,6 +44,7 @@ export default function AdminForm({ admin }: Props) {
             defaultValue={admin?.name || ''}
             className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
             placeholder="e.g. John Doe"
+            minLength={6}
           />
           {state.errors?.name && <p className="text-red-500 text-xs mt-1">{state.errors.name[0]}</p>}
         </div>
@@ -60,6 +61,7 @@ export default function AdminForm({ admin }: Props) {
             defaultValue={admin?.email || ''}
             className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
             placeholder="e.g. admin@example.com"
+            minLength={6}
           />
           {state.errors?.email && <p className="text-red-500 text-xs mt-1">{state.errors.email[0]}</p>}
         </div>

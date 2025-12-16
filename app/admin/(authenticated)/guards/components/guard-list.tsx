@@ -13,19 +13,53 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { Pencil, Key, Download, Upload } from 'lucide-react';
 import Search from '../../components/search';
+import { useRouter, useSearchParams } from 'next/navigation';
+import SortableHeader from '@/components/sortable-header';
 
 type GuardListProps = {
   guards: Serialized<Guard>[];
   page: number;
   perPage: number;
   totalCount: number;
+  sortBy?: 'name' | 'guardCode' | 'joinDate';
+  sortOrder?: 'asc' | 'desc';
 };
 
-export default function GuardList({ guards, page, perPage, totalCount }: GuardListProps) {
+export default function GuardList({
+  guards,
+  page,
+  perPage,
+  totalCount,
+  sortBy = 'joinDate',
+  sortOrder = 'desc',
+}: GuardListProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [passwordModalData, setPasswordModalData] = useState<{ id: string; name: string } | null>(null);
   const [isBulkCreateOpen, setIsBulkCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const handleSort = (field: 'name' | 'guardCode' | 'joinDate') => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    // Determine the new sort order
+    if (sortBy === field) {
+      // If clicking the same field, toggle the sort order
+      const newSortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+      params.set('sortOrder', newSortOrder);
+    } else {
+      // If clicking a different field, set to new field and default to descending
+      params.set('sortBy', field);
+      params.set('sortOrder', 'desc');
+    }
+
+    // Reset to page 1 when sorting
+    params.set('page', '1');
+
+    // Navigate to the new URL
+    router.push(`/admin/guards?${params.toString()}`);
+  };
 
   const handleDeleteClick = (id: string) => {
     setDeleteId(id);
@@ -48,7 +82,7 @@ export default function GuardList({ guards, page, perPage, totalCount }: GuardLi
   const handleExportCSV = async () => {
     try {
       const guards = await getAllGuardsForExport();
-      
+
       const headers = ['Name', 'Phone', 'Guard Code', 'Status', 'Joined Date', 'Left Date', 'Note'];
       const csvContent = [
         headers.join(','),
@@ -60,9 +94,9 @@ export default function GuardList({ guards, page, perPage, totalCount }: GuardLi
             guard.status ? 'Active' : 'Inactive',
             `"${guard.joinDate ? new Date(guard.joinDate).toLocaleDateString() : ''}"`,
             `"${guard.leftDate ? new Date(guard.leftDate).toLocaleDateString() : ''}"`,
-            `"${guard.note ? guard.note.replace(/"/g, '""') : ''}"`
+            `"${guard.note ? guard.note.replace(/"/g, '""') : ''}"`,
           ].join(',');
-        })
+        }),
       ].join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -122,11 +156,29 @@ export default function GuardList({ guards, page, perPage, totalCount }: GuardLi
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
+                <SortableHeader
+                  label="Name"
+                  field="name"
+                  currentSortBy={sortBy}
+                  currentSortOrder={sortOrder}
+                  onSort={handleSort}
+                />
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Guard Code</th>
+                <SortableHeader
+                  label="Guard Code"
+                  field="guardCode"
+                  currentSortBy={sortBy}
+                  currentSortOrder={sortOrder}
+                  onSort={handleSort}
+                />
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Joined Date</th>
+                <SortableHeader
+                  label="Joined Date"
+                  field="joinDate"
+                  currentSortBy={sortBy}
+                  currentSortOrder={sortOrder}
+                  onSort={handleSort}
+                />
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Left Date</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                   Actions

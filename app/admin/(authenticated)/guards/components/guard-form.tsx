@@ -79,6 +79,9 @@ export default function GuardForm({ guard }: Props) {
               name="guardCode"
               id="guardCode"
               defaultValue={guard?.guardCode || ''}
+              maxLength={12}
+              pattern="[a-zA-Z0-9]*"
+              title="Guard code must be alphanumeric only, maximum 12 characters"
               className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
               placeholder="e.g. G001"
             />
@@ -118,16 +121,24 @@ export default function GuardForm({ guard }: Props) {
             <label htmlFor="joinDate" className="block font-medium text-gray-700 mb-1">
               Join Date
             </label>
-            <input type="hidden" name="joinDate" value={joinDate?.toISOString() || ''} />
+            <input
+              type="hidden"
+              name="joinDate"
+              value={joinDate?.toISOString() || ''}
+              required={!guard} // Only required when creating a new guard
+            />
             <DatePicker
               selected={joinDate}
               onChange={date => setJoinDate(date)}
               showTimeSelect
               dateFormat="MM/dd/yyyy h:mm aa"
               placeholderText="Select date and time"
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+              className={`w-full h-10 px-3 rounded-lg border ${
+                state.errors?.joinDate ? 'border-red-500' : 'border-gray-200'
+              } focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all`}
               wrapperClassName="w-full"
             />
+            {state.errors?.joinDate && <p className="text-red-500 text-xs mt-1">{state.errors.joinDate[0]}</p>}
           </div>
 
           {/* Left Date Field */}

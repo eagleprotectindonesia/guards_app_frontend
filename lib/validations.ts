@@ -46,18 +46,18 @@ export const createGuardSchema = z.object({
       value => {
         try {
           const phoneNumber = parsePhoneNumberWithError(value);
-          return phoneNumber && phoneNumber.nationalNumber.length >= 7;
+          return phoneNumber && phoneNumber.nationalNumber.length >= 6 && phoneNumber.nationalNumber.length <= 17;
         } catch {
           return false; // Parsing failed, so it's not a valid phone number for our length check
         }
       },
       {
-        message: 'Phone number is too short',
+        message: 'Phone number must be between 6 and 17 characters',
       }
     ),
-  guardCode: z.string().max(10).optional(),
+  guardCode: z.string().min(1).max(12).regex(/^[a-zA-Z0-9]*$/, 'Guard code must be alphanumeric only').optional(),
   status: z.boolean().optional(),
-  joinDate: z.iso.datetime().optional(),
+  joinDate: z.iso.datetime(),
   leftDate: z.iso.datetime().optional(),
   note: z.string().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters long'), // Required for creation
@@ -81,16 +81,16 @@ export const updateGuardSchema = z.object({
       value => {
         try {
           const phoneNumber = parsePhoneNumberWithError(value);
-          return phoneNumber && phoneNumber.nationalNumber.length >= 7;
+          return phoneNumber && phoneNumber.nationalNumber.length >= 6 && phoneNumber.nationalNumber.length <= 17;
         } catch {
           return false; // Parsing failed, so it's not a valid phone number for our length check
         }
       },
       {
-        message: 'Phone number is too short',
+        message: 'Phone number must be between 6 and 17 characters',
       }
     ),
-  guardCode: z.string().max(10).optional(),
+  guardCode: z.string().max(12).regex(/^[a-zA-Z0-9]*$/, 'Guard code must be alphanumeric only').optional(),
   status: z.boolean().optional(),
   joinDate: z.string().datetime().optional(),
   leftDate: z.string().datetime().optional(),

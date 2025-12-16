@@ -204,6 +204,7 @@ export default function SiteForm({ site }: Props) {
                 defaultValue={site?.name || ''}
                 className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
                 placeholder="e.g. Warehouse A"
+                minLength={4}
               />
               {state.errors?.name && <p className="text-red-500 text-xs mt-1">{state.errors.name[0]}</p>}
             </div>
@@ -220,6 +221,7 @@ export default function SiteForm({ site }: Props) {
                 defaultValue={site?.clientName || ''}
                 className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
                 placeholder="e.g. Acme Corp"
+                minLength={2}
               />
               {state.errors?.clientName && <p className="text-red-500 text-xs mt-1">{state.errors.clientName[0]}</p>}
             </div>

@@ -15,6 +15,18 @@ export default async function GuardsPage(props: GuardsPageProps) {
   const { page, perPage, skip } = getPaginationParams(searchParams);
   const query = searchParams.q as string | undefined;
 
+  // Handle sorting parameters
+  const sortBy = typeof searchParams.sortBy === 'string' ? searchParams.sortBy : 'joinDate'; // Default to joinDate
+
+  const sortOrder =
+    (typeof searchParams.sortOrder === 'string' && ['asc', 'desc'].includes(searchParams.sortOrder)
+      ? searchParams.sortOrder as 'asc' | 'desc'
+      : 'desc');
+
+  // Validate sortBy field to prevent SQL injection
+  const validSortFields = ['name', 'guardCode', 'joinDate'];
+  const sortField = validSortFields.includes(sortBy) ? (sortBy as 'name' | 'guardCode' | 'joinDate') : 'joinDate';
+
   const where: Prisma.GuardWhereInput = query
     ? {
         OR: [
@@ -28,7 +40,7 @@ export default async function GuardsPage(props: GuardsPageProps) {
   const [guards, totalCount] = await prisma.$transaction([
     prisma.guard.findMany({
       where,
-      orderBy: { name: 'asc' },
+      orderBy: { [sortField]: sortOrder as 'asc' | 'desc' },
       skip,
       take: perPage,
     }),
@@ -40,7 +52,14 @@ export default async function GuardsPage(props: GuardsPageProps) {
   return (
     <div className="max-w-7xl mx-auto">
       <Suspense fallback={<div>Loading guards...</div>}>
-        <GuardList guards={serializedGuards} page={page} perPage={perPage} totalCount={totalCount} />
+        <GuardList
+          guards={serializedGuards}
+          page={page}
+          perPage={perPage}
+          totalCount={totalCount}
+          sortBy={sortField}
+          sortOrder={sortOrder}
+        />
       </Suspense>
     </div>
   );

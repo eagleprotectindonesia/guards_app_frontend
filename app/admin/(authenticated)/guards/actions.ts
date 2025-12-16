@@ -6,6 +6,7 @@ import { hashPassword, serialize, Serialized } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 import { Guard } from '@prisma/client';
 import { parse, isValid } from 'date-fns';
+import { parsePhoneNumberWithError } from 'libphonenumber-js';
 
 export type ActionState = {
   message?: string;
@@ -14,6 +15,11 @@ export type ActionState = {
     phone?: string[];
     password?: string[];
     confirmPassword?: string[];
+    guardCode?: string[];
+    status?: string[];
+    joinDate?: string[];
+    leftDate?: string[];
+    note?: string[];
   };
   success?: boolean;
 };
@@ -198,9 +204,9 @@ export async function bulkCreateGuards(
     const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
 
     // Expected: Name, Phone, Guard Code, Note, Join Date, Password
-    // At minimum, Name, Phone, and Password are required.
+    // At minimum, Name, Phone, Password, and Join Date are required.
     if (cols.length < 3) {
-      errors.push(`Row ${i + 1}: Insufficient columns. Name, Phone, and Password are required.`);
+      errors.push(`Row ${i + 1}: Insufficient columns. Name, Phone, Password, and Join Date are required.`);
       continue;
     }
 
@@ -216,8 +222,25 @@ export async function bulkCreateGuards(
       continue;
     }
 
+    // Validate phone number length
+    try {
+      const phoneNumberObj = parsePhoneNumberWithError(phone);
+      if (phoneNumberObj.nationalNumber.length < 6 || phoneNumberObj.nationalNumber.length > 17) {
+        errors.push(`Row ${i + 1}: Phone number must be between 6 and 17 characters.`);
+        continue;
+      }
+    } catch {
+      errors.push(`Row ${i + 1}: Invalid phone number format.`);
+      continue;
+    }
+
     if (!password) {
       errors.push(`Row ${i + 1}: Password is required.`);
+      continue;
+    }
+
+    if (!joinDateStr) {
+      errors.push(`Row ${i + 1}: Join Date is required.`);
       continue;
     }
 
@@ -253,10 +276,24 @@ export async function bulkCreateGuards(
       joinDateISO = d.toISOString();
     }
 
+    // Validate guard code if provided
+    let guardCodeValue: string | undefined = undefined;
+    if (guardCode) {
+      if (!/^[a-zA-Z0-9]*$/.test(guardCode)) {
+        errors.push(`Row ${i + 1}: Guard code must be alphanumeric only.`);
+        continue;
+      }
+      if (guardCode.length > 12) {
+        errors.push(`Row ${i + 1}: Guard code must be at most 12 characters.`);
+        continue;
+      }
+      guardCodeValue = guardCode;
+    }
+
     const inputData = {
       name,
       phone,
-      guardCode: guardCode || undefined,
+      guardCode: guardCodeValue,
       note: note || undefined,
       joinDate: joinDateISO,
       password: password,

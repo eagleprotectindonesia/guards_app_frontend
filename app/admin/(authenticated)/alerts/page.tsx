@@ -1,15 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AlertFeed, { AlertWithRelations } from '../components/alert-feed';
 import PaginationNav from '../components/pagination-nav';
 import AlertExport from '../components/alert-export';
-
-type SSEAlertData =
-  | { type: 'alert_created' | 'alert_updated'; alert: AlertWithRelations }
-  | { type: 'alert_deleted'; alertId: string }
-  | AlertWithRelations;
+import { useAlerts, SSEAlertData } from '../context/alert-context';
 
 export default function AdminAlertsPage() {
   const searchParams = useSearchParams();
@@ -18,8 +14,8 @@ export default function AdminAlertsPage() {
 
   const [alerts, setAlerts] = useState<AlertWithRelations[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [connectionStatus, setConnectionStatus] = useState('Disconnected');
-  const eventSourceRef = useRef<EventSource | null>(null);
+
+  const { connectionStatus, lastAlertEvent } = useAlerts();
 
   // Fetch alerts with pagination
   useEffect(() => {
@@ -37,70 +33,44 @@ export default function AdminAlertsPage() {
     fetchAlerts();
   }, [page, perPage]);
 
-  // Connect SSE for global alerts (real-time updates)
+  // React to global alert events from Context
   useEffect(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
+    if (!lastAlertEvent) return;
 
-    // Connect to the global alerts stream
-    const es = new EventSource('/api/admin/alerts/stream');
-    setConnectionStatus('Connecting...');
+    const data = lastAlertEvent;
 
-    es.onopen = () => setConnectionStatus('Connected');
-
-    es.onerror = () => {
-      setConnectionStatus('Reconnecting...');
-    };
-
-    es.addEventListener('backfill', () => {
-      // no-op
-    });
-
-    es.addEventListener('alert', (e: MessageEvent) => {
-      try {
-        const data: SSEAlertData = JSON.parse(e.data);
-
-        if ('type' in data) {
-          if (data.type === 'alert_created') {
-            // Only prepend if we are on the first page
-            if (page === 1) {
-              setAlerts(prev => {
-                if (prev.find(a => a.id === data.alert.id)) return prev;
-                const newAlerts = [data.alert, ...prev];
-                // Optional: Truncate to perPage to keep page size consistent?
-                // Or just let it grow until refresh? Let's let it grow for now.
-                return newAlerts;
-              });
-              setTotalCount(prev => prev + 1);
-            } else {
-              // If not on page 1, just increment total count
-              setTotalCount(prev => prev + 1);
-            }
-          } else if (data.type === 'alert_updated') {
-            setAlerts(prev => prev.map(a => (a.id === data.alert.id ? data.alert : a)));
-          } else if (data.type === 'alert_deleted') {
-            setAlerts(prev => prev.filter(a => a.id !== data.alertId));
-            setTotalCount(prev => Math.max(0, prev - 1));
-          }
-        } else if ('id' in data) {
-          // Fallback logic
-          if (page === 1) {
-            setAlerts(prev => [data, ...prev]);
-            setTotalCount(prev => prev + 1);
-          }
+    if ('type' in data) {
+      if (data.type === 'alert_created') {
+        // Only prepend if we are on the first page
+        if (page === 1) {
+          setAlerts(prev => {
+            if (prev.find(a => a.id === data.alert.id)) return prev;
+            // Add new alert to the top
+            const newAlerts = [data.alert, ...prev];
+            return newAlerts;
+          });
+          setTotalCount(prev => prev + 1);
+        } else {
+          // If not on page 1, just increment total count
+          setTotalCount(prev => prev + 1);
         }
-      } catch (err) {
-        console.error('Error parsing alert', err);
+      } else if (data.type === 'alert_updated') {
+        setAlerts(prev => prev.map(a => (a.id === data.alert.id ? data.alert : a)));
+      } else if (data.type === 'alert_deleted') {
+        setAlerts(prev => prev.filter(a => a.id !== data.alertId));
+        setTotalCount(prev => Math.max(0, prev - 1));
       }
-    });
-
-    eventSourceRef.current = es;
-
-    return () => {
-      es.close();
-    };
-  }, [page]); // Re-run if page changes to update the closure
+    } else if ('id' in data) {
+      // Fallback logic for raw alert object
+      if (page === 1) {
+         setAlerts(prev => {
+             if (prev.find(a => a.id === data.id)) return prev;
+             return [data, ...prev];
+         });
+         setTotalCount(prev => prev + 1);
+      }
+    }
+  }, [lastAlertEvent, page]);
 
   const handleResolve = (alertId: string, resolutionData?: { outcome: string; note: string }) => {
     setAlerts(prev =>

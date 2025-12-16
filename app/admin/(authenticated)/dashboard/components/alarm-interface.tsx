@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import { Serialized } from '@/lib/utils';
 import { Alert, Guard, Shift, ShiftType, Site } from '@prisma/client';
 
@@ -23,54 +22,23 @@ interface AlarmInterfaceProps {
 }
 
 export default function AlarmInterface({ alerts }: AlarmInterfaceProps) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Audio logic has been moved to GlobalAlertManager
 
-  // Alarm Audio Logic
-  useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio('/audios/alarm.wav');
-      audioRef.current.loop = true;
-    }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const hasActiveAlerts = alerts.some(alert => !alert.acknowledgedAt && !alert.resolvedAt);
-
-    if (hasActiveAlerts) {
-      if (audio.paused) {
-        audio.play().catch(e => console.warn('Alarm playback failed/blocked:', e));
-      }
-    } else {
-      if (!audio.paused) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-    }
-  }, [alerts]);
+  const hasActiveAlerts = alerts.some(alert => !alert.acknowledgedAt && !alert.resolvedAt);
 
   return (
     <div
       className={`flex items-center justify-between p-4 rounded-xl shadow-sm border transition-colors ${
-        alerts.length > 0 ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100'
+        hasActiveAlerts ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100'
       }`}
     >
       <div className="flex items-center gap-4">
         <div
           className={`p-3 rounded-full ${
-            alerts.length > 0 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-400'
+            hasActiveAlerts ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-400'
           }`}
         >
-          {alerts.length > 0 ? (
+          {hasActiveAlerts ? (
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
@@ -91,11 +59,11 @@ export default function AlarmInterface({ alerts }: AlarmInterfaceProps) {
           )}
         </div>
         <div>
-          <h3 className={`font-bold ${alerts.length > 0 ? 'text-red-900' : 'text-gray-900'}`}>
-            {alerts.length > 0 ? 'ALARM TRIGGERED' : 'System Normal'}
+          <h3 className={`font-bold ${hasActiveAlerts ? 'text-red-900' : 'text-gray-900'}`}>
+            {hasActiveAlerts ? 'ALARM TRIGGERED' : 'System Normal'}
           </h3>
-          <p className={`text-sm ${alerts.length > 0 ? 'text-red-700' : 'text-gray-500'}`}>
-            {alerts.length > 0
+          <p className={`text-sm ${hasActiveAlerts ? 'text-red-700' : 'text-gray-500'}`}>
+            {hasActiveAlerts
               ? `${alerts.length} active alert${alerts.length === 1 ? '' : 's'} require attention`
               : 'No active alerts detected'}
           </p>

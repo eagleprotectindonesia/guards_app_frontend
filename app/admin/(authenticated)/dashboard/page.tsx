@@ -1,58 +1,27 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Site, Guard, Shift, ShiftType, Alert } from '@prisma/client';
+import { useState, useEffect } from 'react';
+import { Site } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
 import AlarmInterface from './components/alarm-interface';
-import AlertFeed from '../components/alert-feed'; // Import the new AlertFeed component
+import AlertFeed from '../components/alert-feed';
 import Select from '../components/select';
+import { useAlerts } from '../context/alert-context';
 
-type GuardWithOptionalRelations = Serialized<Guard>;
-type ShiftTypeWithOptionalRelations = Serialized<ShiftType>;
 type SiteWithOptionalRelations = Serialized<Site>;
-
-type ShiftWithOptionalRelations = Serialized<Shift> & {
-  guard?: GuardWithOptionalRelations | null;
-  shiftType?: ShiftTypeWithOptionalRelations;
-};
-
-type ActiveShiftInDashboard = Serialized<Shift> & {
-  guard: GuardWithOptionalRelations | null;
-  shiftType: ShiftTypeWithOptionalRelations;
-};
-
-type ActiveSiteData = {
-  site: SiteWithOptionalRelations;
-  shifts: ActiveShiftInDashboard[];
-};
-
-type UpcomingShift = Serialized<Shift> & {
-  guard: GuardWithOptionalRelations | null;
-  shiftType: ShiftTypeWithOptionalRelations;
-  site: SiteWithOptionalRelations;
-};
-
-export type AlertWithRelations = Serialized<Alert> & {
-  site?: SiteWithOptionalRelations;
-  shift?: ShiftWithOptionalRelations;
-  status?: string;
-};
-
-type SSEAlertData =
-  | {
-      type: 'alert_created' | 'alert_updated' | 'alert_attention';
-      alert: AlertWithRelations;
-    }
-  | AlertWithRelations;
 
 export default function AdminDashboard() {
   const [sites, setSites] = useState<SiteWithOptionalRelations[]>([]);
-  const [activeSites, setActiveSites] = useState<ActiveSiteData[]>([]);
-  const [upcomingShifts, setUpcomingShifts] = useState<UpcomingShift[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState(''); // Empty string = All Sites
-  const [alerts, setAlerts] = useState<AlertWithRelations[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState('Disconnected');
-  const eventSourceRef = useRef<EventSource | null>(null);
+
+  const {
+    alerts: allAlerts,
+    activeSites: allActiveSites,
+    upcomingShifts: allUpcomingShifts,
+    connectionStatus,
+    acknowledgeAlert,
+    resolveAlert,
+  } = useAlerts();
 
   // Fetch all sites for the dropdown (static list)
   useEffect(() => {
@@ -63,124 +32,27 @@ export default function AdminDashboard() {
       });
   }, []);
 
-  // Connect SSE
-  useEffect(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    // Construct URL: if selectedSiteId is empty, it hits the global stream
-    const url = selectedSiteId ? `/api/admin/alerts/stream?siteId=${selectedSiteId}` : '/api/admin/alerts/stream';
-
-    const es = new EventSource(url);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setConnectionStatus('Connecting...');
-
-    es.onopen = () => setConnectionStatus('Connected');
-
-    es.onerror = () => {
-      setConnectionStatus('Reconnecting...');
-      // Browser native EventSource automatically retries on error,
-      // but we update UI to reflect potential temporary disconnect.
-    };
-
-    es.addEventListener('backfill', (e: MessageEvent) => {
-      try {
-        const data: AlertWithRelations[] = JSON.parse(e.data);
-        setAlerts(data.filter(alert => !alert.resolvedAt));
-      } catch (err) {
-        console.error('Error parsing backfill', err);
-      }
-    });
-
-    es.addEventListener('active_shifts', (e: MessageEvent) => {
-      try {
-        const data: ActiveSiteData[] = JSON.parse(e.data);
-        // Expecting array of { site: {...}, shifts: [...] }
-        setActiveSites(data);
-      } catch (err) {
-        console.error('Error parsing active_shifts', err);
-      }
-    });
-
-    es.addEventListener('upcoming_shifts', (e: MessageEvent) => {
-      try {
-        const data: UpcomingShift[] = JSON.parse(e.data);
-        setUpcomingShifts(data);
-      } catch (err) {
-        console.error('Error parsing upcoming_shifts', err);
-      }
-    });
-
-    es.addEventListener('alert', (e: MessageEvent) => {
-      try {
-        const data: SSEAlertData = JSON.parse(e.data);
-
-        if ('type' in data && data.type === 'alert_created') {
-          setAlerts(prev => {
-            // Remove any existing 'need_attention' alerts for the same shift
-            // and filter out the new alert if it's already present or resolved.
-            const filteredPrev = prev.filter(a => {
-              if (data.alert.shift?.id && a.shift?.id === data.alert.shift.id && a.status === 'need_attention') {
-                return false; // Remove the old 'need_attention' alert for this shift
-              }
-              return a.id !== data.alert.id && !data.alert.resolvedAt; // Avoid adding duplicates or resolved alerts
-            });
-            return [data.alert, ...filteredPrev];
-          });
-        } else if ('type' in data && data.type === 'alert_attention') {
-          setAlerts(prev => {
-            // Avoid duplicates
-            if (prev.find(a => a.id === data.alert.id)) return prev;
-            return [{ ...data.alert, status: 'need_attention' }, ...prev];
-          });
-        } else if ('type' in data && data.type === 'alert_updated') {
-          setAlerts(prev => {
-            // If the updated alert is resolved, remove it from the list
-            if (data.alert.resolvedAt) {
-              return prev.filter(a => a.id !== data.alert.id);
-            }
-            // Otherwise, update the alert
-            return prev.map(a => (a.id === data.alert.id ? data.alert : a));
-          });
-        } else if ('id' in data && !data.resolvedAt) {
-          // Fallback for raw alert object (legacy?) - only add if not resolved
-          setAlerts(prev => [data, ...prev]);
-        }
-      } catch (err) {
-        console.error('Error parsing alert', err);
-      }
-    });
-
-    eventSourceRef.current = es;
-
-    return () => {
-      es.close();
-    };
-  }, [selectedSiteId]);
-
-  const handleResolve = (alertId: string) => {
-    // Optimistic Update: remove the resolved alert from the list
-    setAlerts(prev => prev.filter(a => a.id !== alertId));
+  const handleAcknowledge = async (alertId: string) => {
+    acknowledgeAlert(alertId);
   };
 
-  const handleAcknowledge = async (alertId: string) => {
-    // Optimistic update: update local state immediately
-    setAlerts(prev =>
-      prev.map(a => {
-        if (a.id !== alertId) return a;
-        return {
-          ...a,
-          acknowledgedAt: new Date().toISOString(),
-        };
-      })
-    );
+  const handleResolve = (alertId: string) => {
+    resolveAlert(alertId);
   };
 
   const siteOptions = [
     { value: '', label: 'All Sites' },
     ...sites.map(s => ({ value: s.id, label: s.name })).slice(0, 8),
   ];
+
+  // Client-side filtering
+  const alerts = selectedSiteId ? allAlerts.filter(a => a.site?.id === selectedSiteId) : allAlerts;
+
+  const activeSites = selectedSiteId ? allActiveSites.filter(as => as.site.id === selectedSiteId) : allActiveSites;
+
+  const upcomingShifts = selectedSiteId
+    ? allUpcomingShifts.filter(us => us.site.id === selectedSiteId)
+    : allUpcomingShifts;
 
   return (
     <div className="h-full flex flex-col">
@@ -253,7 +125,7 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                     <div className="space-y-2">
-                      {shifts.map((shift: ActiveShiftInDashboard) => (
+                      {shifts.map(shift => (
                         <div key={shift.id} className="text-xs text-gray-600 flex items-center gap-2">
                           <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
                           <span className="truncate">
@@ -283,11 +155,14 @@ export default function AdminDashboard() {
                 upcomingShifts.map(shift => (
                   <div key={shift.id} className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-gray-900 text-sm truncate max-w-[150px]" title={shift.site?.name}>
+                      <span
+                        className="font-medium text-gray-900 text-sm truncate max-w-[150px]"
+                        title={shift.site?.name}
+                      >
                         {shift.site?.name}
                       </span>
                       <span className="text-xs text-gray-500 font-mono">
-                         {new Date(shift.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(shift.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <div className="text-xs text-gray-600 flex items-center gap-2">

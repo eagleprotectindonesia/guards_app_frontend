@@ -35,7 +35,7 @@ export default function AlertResolutionModal({ isOpen, onClose, onConfirm }: Ale
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Resolve Alert">
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">Resolution Outcome</label>
           <div className="grid grid-cols-2 gap-3">

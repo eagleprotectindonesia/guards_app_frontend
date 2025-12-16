@@ -1,5 +1,6 @@
 import { ShiftWithRelations } from '@/app/admin/(authenticated)/shifts/components/shift-list';
 import { format } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ShiftInfoCardProps {
   shift: ShiftWithRelations;
@@ -7,12 +8,22 @@ interface ShiftInfoCardProps {
 
 export function ShiftInfoCard({ shift }: ShiftInfoCardProps) {
   return (
-    <div className="border rounded-lg shadow-sm p-6 bg-white mb-6">
-      <h2 className="text-2xl font-semibold">{shift.shiftType.name}</h2>
-      <p className="text-gray-700 font-semibold">{shift.site.name}</p>
-      <p className="font-semibold text-gray-500 mt-1">
-        {format(new Date(shift.startsAt), 'dd MMM yyyy, HH:mm')} - {format(new Date(shift.endsAt), 'HH:mm')}
-      </p>
-    </div>
+    <Card className="shadow-sm bg-blue-50 border-blue-200 my-6 h-full flex flex-col px-4">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+        <div className="flex items-center">
+          <CardTitle className="text-2xl text-blue-800">Shift Sekarang</CardTitle>
+          <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            Active
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col">
+        <p className="text-gray-700 font-semibold text-lg">{shift.site.name}</p>
+        <p className="font-semibold text-gray-500 mt-1">
+          {format(new Date(shift.startsAt), 'dd MMM yyyy, HH:mm')} - {format(new Date(shift.endsAt), 'HH:mm')}
+        </p>
+        <p className="text-sm text-gray-500 mt-2">Tipe Shift: {shift.shiftType.name}</p>
+      </CardContent>
+    </Card>
   );
 }

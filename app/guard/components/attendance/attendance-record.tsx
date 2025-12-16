@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ShiftWithRelations } from '@/app/admin/(authenticated)/shifts/components/shift-list'; // Assuming this type is available and suitable
 import { useGuardApi } from '@/app/guard/(authenticated)/hooks/use-guard-api'; // Adjust import path as necessary
 import { format } from 'date-fns';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 interface AttendanceRecordProps {
   shift: ShiftWithRelations;
@@ -111,49 +112,55 @@ export function AttendanceRecord({
   const isLateTime = !hasAttendance && now.getTime() > graceEndMs;
 
   return (
-    <div
-      className={`p-6 border rounded-lg shadow-sm mb-4 ${
+    <Card
+      className={`mb-4 shadow-sm ${
         isLateTime ? 'bg-red-50 border-red-200' : isLateAttendance ? 'bg-yellow-50 border-yellow-200' : 'bg-white'
       }`}
     >
-      <h3 className="text-2xl font-bold mb-2">Status Kehadiran</h3>
-      {hasAttendance ? (
-        <p className={`font-medium ${isLateAttendance ? 'text-yellow-600' : 'text-green-600'}`}>
-          {isLateAttendance
-            ? `Kehadiran direkam sebagai terlambat pada ${format(
-                new Date(shift.attendance!.recordedAt),
-                'MM/dd/yyyy HH:mm'
-              )}`
-            : `Kehadiran direkam pada ${format(new Date(shift.attendance!.recordedAt), 'MM/dd/yyyy HH:mm')}`}
-        </p>
-      ) : isLateTime ? (
-        <p className="text-red-600 font-bold">Kehadiran Tidak Terekam</p>
-      ) : (
-        <p className="text-red-500 font-medium">Harap rekam kehadiran Anda untuk memulai Shift.</p>
-      )}
+      <CardHeader className="pb-2">
+        <CardTitle className="text-2xl">Status Kehadiran</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {hasAttendance ? (
+          <p className={`font-medium ${isLateAttendance ? 'text-yellow-600' : 'text-green-600'}`}>
+            {isLateAttendance
+              ? `Kehadiran direkam sebagai terlambat pada ${format(
+                  new Date(shift.attendance!.recordedAt),
+                  'MM/dd/yyyy HH:mm'
+                )}`
+              : `Kehadiran direkam pada ${format(new Date(shift.attendance!.recordedAt), 'MM/dd/yyyy HH:mm')}`}
+          </p>
+        ) : isLateTime ? (
+          <p className="text-red-600 font-bold">Kehadiran Tidak Terekam</p>
+        ) : (
+          <p className="text-red-500 font-medium">Harap rekam kehadiran Anda untuk memulai Shift.</p>
+        )}
 
-      {message && (
-        <p className={`mt-2 text-sm ${messageType === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message}</p>
-      )}
+        {message && (
+          <p className={`mt-2 text-sm ${messageType === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message}</p>
+        )}
 
-      {!hasAttendance && !isLateTime && (
-        <>
-          <Button
-            onClick={handleRecordAttendance}
-            disabled={isRecording || !canRecordAttendance}
-            className="mt-4 w-full"
-          >
-            {isRecording ? 'Merekam...' : 'Rekam Kehadiran'}
-          </Button>
-          {!canRecordAttendance && (
-            <p className="text-sm text-gray-500 font-semibold mt-2">Kehadiran sudah direkam untuk Shift ini.</p>
-          )}
-        </>
-      )}
+        {!hasAttendance && !isLateTime && (
+          <>
+            <Button
+              onClick={handleRecordAttendance}
+              disabled={isRecording || !canRecordAttendance}
+              className="mt-4 w-full"
+            >
+              {isRecording ? 'Merekam...' : 'Rekam Kehadiran'}
+            </Button>
+            {!canRecordAttendance && (
+              <p className="text-sm text-gray-500 font-semibold mt-2">Kehadiran sudah direkam untuk Shift ini.</p>
+            )}
+          </>
+        )}
 
-      {isLateTime && !hasAttendance && (
-        <p className="text-red-600 mt-2 font-medium"><i>Batas waktu presensi terlewat. Harap hubungi administrator Anda.</i></p>
-      )}
-    </div>
+        {isLateTime && !hasAttendance && (
+          <p className="text-red-600 mt-2 font-medium">
+            <i>Batas waktu presensi terlewat. Harap hubungi administrator Anda.</i>
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

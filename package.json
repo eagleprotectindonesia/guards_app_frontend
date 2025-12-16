@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently --prefix-colors \"bgBlue.bold,bgMagenta.bold\" --names \"NEXT,WORKER\" \"next dev\" \"tsx --watch worker.ts\"",
+    "dev:https": "concurrently --prefix-colors \"bgBlue.bold,bgMagenta.bold\" --names \"NEXT,WORKER\" \"next dev --experimental-https\" \"tsx --watch worker.ts\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -26,6 +27,7 @@
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "dotenv": "^17.2.3",
+    "embla-carousel-react": "^8.6.0",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
     "libphonenumber-js": "^1.12.31",

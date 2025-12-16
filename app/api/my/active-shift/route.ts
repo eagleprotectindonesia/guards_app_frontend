@@ -39,8 +39,8 @@ export async function GET(req: Request) {
       activeShiftWithWindow = { ...activeShift, checkInWindow: window };
     }
 
-    // Find the next upcoming shift (that isn't considered active due to early start)
-    const nextShift = await prisma.shift.findFirst({
+    // Find the next upcoming shifts (that isn't considered active due to early start)
+    const nextShifts = await prisma.shift.findMany({
       where: {
         guardId,
         status: { in: ['scheduled'] }, // Only scheduled shifts
@@ -49,10 +49,11 @@ export async function GET(req: Request) {
       orderBy: {
         startsAt: 'asc'
       },
+      take: 4,
       include: { site: true, shiftType: true, guard: true, attendance: true }, // Include same relations as active shift
     });
 
-    return NextResponse.json({ activeShift: activeShiftWithWindow, nextShift });
+    return NextResponse.json({ activeShift: activeShiftWithWindow, nextShifts });
   } catch (error) {
     console.error('Error fetching shifts:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

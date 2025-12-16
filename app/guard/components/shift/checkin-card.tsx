@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { ShiftWithRelations } from '@/app/admin/(authenticated)/shifts/components/shift-list';
 import { useGuardApi } from '@/app/guard/(authenticated)/hooks/use-guard-api';
 import { CheckInWindowResult } from '@/lib/scheduling';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type ActiveShiftWithWindow = ShiftWithRelations & {
   checkInWindow?: CheckInWindowResult;
@@ -198,26 +199,28 @@ export default function CheckInCard({
   }
 
   return (
-    <div className="border rounded-lg shadow-sm p-6 bg-white mb-6">
-      <div className="mb-6">
-        <p className="font-semibold text-gray-500">Check-in Berikutnya:</p>
-        <p className="text-3xl font-mono font-bold text-blue-600">
-          {nextDueDisplay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </p>
-        <p className="text-sm font-bold text-gray-400 mt-1">Masa tenggang: {activeShift.graceMinutes} menit</p>
-        <p className={`text-sm font-semibold mt-2 ${canCheckIn ? 'text-green-600' : 'text-amber-600'}`}>{timeLeft}</p>
-      </div>
+    <Card className="mb-6 shadow-sm">
+      <CardContent className="pt-6">
+        <div className="mb-6">
+          <p className="font-semibold text-gray-500">Check-in Berikutnya:</p>
+          <p className="text-3xl font-mono font-bold text-blue-600">
+            {nextDueDisplay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
+          <p className="text-sm font-bold text-gray-400 mt-1">Masa tenggang: {activeShift.graceMinutes} menit</p>
+          <p className={`text-sm font-semibold mt-2 ${canCheckIn ? 'text-green-600' : 'text-amber-600'}`}>{timeLeft}</p>
+        </div>
 
-      {canCheckIn && (
-        <button
-          onClick={handleCheckIn}
-          className="w-full text-lg font-bold py-4 rounded-lg shadow transition-all active:scale-95 bg-green-600 hover:bg-green-700 text-white"
-        >
-          CHECK IN SEKARANG
-        </button>
-      )}
+        {canCheckIn && (
+          <button
+            onClick={handleCheckIn}
+            className="w-full text-lg font-bold py-4 rounded-lg shadow transition-all active:scale-95 bg-green-600 hover:bg-green-700 text-white"
+          >
+            CHECK IN SEKARANG
+          </button>
+        )}
 
-      {status && <p className="mt-4 text-center font-medium text-sm text-gray-700">{status}</p>}
-    </div>
+        {status && <p className="mt-4 text-center font-medium text-sm text-gray-700">{status}</p>}
+      </CardContent>
+    </Card>
   );
 }

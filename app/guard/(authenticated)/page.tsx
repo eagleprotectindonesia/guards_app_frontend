@@ -10,6 +10,7 @@ import CheckInCard from '@/app/guard/components/shift/checkin-card';
 import { AttendanceRecord } from '@/app/guard/components/attendance/attendance-record';
 import { ShiftInfoCard } from '@/app/guard/components/shift/shift-info-card';
 import { NextShiftCard } from '@/app/guard/components/shift/next-shift-card';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 // Type for password change form state
 type PasswordChangeState = {
@@ -65,12 +66,14 @@ const parseShiftDates = (shift: any) => {
     ...shift,
     startsAt: new Date(shift.startsAt),
     endsAt: new Date(shift.endsAt),
-    checkInWindow: shift.checkInWindow ? {
-      ...shift.checkInWindow,
-      currentSlotStart: new Date(shift.checkInWindow.currentSlotStart),
-      currentSlotEnd: new Date(shift.checkInWindow.currentSlotEnd),
-      nextSlotStart: new Date(shift.checkInWindow.nextSlotStart),
-    } : undefined,
+    checkInWindow: shift.checkInWindow
+      ? {
+          ...shift.checkInWindow,
+          currentSlotStart: new Date(shift.checkInWindow.currentSlotStart),
+          currentSlotEnd: new Date(shift.checkInWindow.currentSlotEnd),
+          nextSlotStart: new Date(shift.checkInWindow.nextSlotStart),
+        }
+      : undefined,
   };
 };
 
@@ -78,7 +81,7 @@ export default function GuardPage() {
   const router = useRouter(); // Initialize router
   const { fetchWithAuth } = useGuardApi();
   const [activeShift, setActiveShift] = useState<ShiftWithRelations | null>(null);
-  const [nextShift, setNextShift] = useState<ShiftWithRelations | null>(null);
+  const [nextShifts, setNextShifts] = useState<ShiftWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [guardDetails, setGuardDetails] = useState<{ name: string; guardCode?: string } | null>(null); // New state for guard details
@@ -105,8 +108,8 @@ export default function GuardPage() {
       } else {
         // When there's no active shift, check if we've passed the scheduled start time of the next shift
         const FIVE_MINUTES_IN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
-        if (nextShift) {
-          const startTime = new Date(nextShift.startsAt);
+        if (nextShifts.length > 0) {
+          const startTime = new Date(nextShifts[0].startsAt);
           const shiftStartWithGrace = new Date(startTime.getTime() - FIVE_MINUTES_IN_MS);
           if (now >= shiftStartWithGrace) {
             // Fetch to see if the next shift is now the active shift
@@ -116,7 +119,7 @@ export default function GuardPage() {
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [activeShift, nextShift, loading]);
+  }, [activeShift, nextShifts, loading]);
 
   const fetchGuardDetails = async () => {
     try {
@@ -144,7 +147,7 @@ export default function GuardPage() {
         const errorData = await res.json();
         console.error('Error fetching active shift:', errorData.message || res.statusText);
         setActiveShift(null);
-        setNextShift(null);
+        setNextShifts([]);
         return;
       }
       const data = await res.json();
@@ -154,10 +157,10 @@ export default function GuardPage() {
       } else {
         setActiveShift(null);
       }
-      if (data.nextShift) {
-        setNextShift(parseShiftDates(data.nextShift));
+      if (data.nextShifts && Array.isArray(data.nextShifts)) {
+        setNextShifts(data.nextShifts.map(parseShiftDates));
       } else {
-        setNextShift(null);
+        setNextShifts([]);
       }
     } catch (err) {
       console.error('Network error fetching active shift:', err);
@@ -174,7 +177,7 @@ export default function GuardPage() {
   //   return () => clearInterval(intervalId);
   // }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     fetchGuardDetails();
     fetchShift();
   }, []);
@@ -194,7 +197,9 @@ export default function GuardPage() {
 
   return (
     <div className="p-8 max-w-md mx-auto font-sans">
-      <h1 className="text-3xl font-bold mb-1">Selamat datang, <br /> {guardDetails?.name || 'Guard'}!</h1>
+      <h1 className="text-3xl font-bold mb-1">
+        Selamat datang, <br /> {guardDetails?.name || 'Guard'}!
+      </h1>
       {guardDetails?.guardCode && (
         <p className="text-gray-500 text font-semibold mb-4">Kode Guard: {guardDetails.guardCode}</p>
       )}
@@ -203,42 +208,69 @@ export default function GuardPage() {
 
       {!loading && !activeShift && (
         <div className="text-center p-8 border-2 border-dashed rounded">
-          <p className="text-gray-500">Anda tidak memiliki shift aktif saat ini.</p>
+          <p className="text-gray-500">Anda tidak memiliki shift aktif</p>
         </div>
       )}
 
-      {activeShift && (
+      {(activeShift || nextShifts.length > 0) && (
         <>
-          <ShiftInfoCard shift={activeShift} />
-          <AttendanceRecord
-            shift={activeShift}
-            onAttendanceRecorded={fetchShift}
-            status={status}
-            setStatus={setStatus}
-            currentTime={currentTime}
-          />
-          {(() => {
-            const ATTENDANCE_GRACE_MINS = 5;
-            const startMs = new Date(activeShift.startsAt).getTime();
-            const graceEndMs = startMs + ATTENDANCE_GRACE_MINS * 60000;
-            const isAttendanceLate = !activeShift.attendance && currentTime.getTime() > graceEndMs;
+          <div className="relative">
+            <Carousel className="w-full mb-6">
+              <CarouselContent>
+                {activeShift && (
+                  <CarouselItem>
+                    <div className="p-1">
+                      <ShiftInfoCard shift={activeShift} />
+                    </div>
+                  </CarouselItem>
+                )}
+                {nextShifts.map(shift => (
+                  <CarouselItem key={shift.id}>
+                    <div className="p-1">
+                      <NextShiftCard shift={shift} />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {(activeShift ? 1 : 0) + nextShifts.length > 1 && (
+                <>
+                  <CarouselPrevious className="absolute top-1/2 left-2 -translate-y-1/2 z-10 bg-transparent border-none text-blue-600 hover:text-blue-800 p-0 w-auto h-auto" />
+                  <CarouselNext className="absolute top-1/2 right-2 -translate-y-1/2 z-10 bg-transparent border-none text-blue-600 hover:text-blue-800 p-0 w-auto h-auto" />
+                </>
+              )}
+            </Carousel>
+          </div>
 
-            return activeShift.attendance || isAttendanceLate ? (
-              <CheckInCard
-                activeShift={activeShift}
-                loading={loading}
+          {activeShift && (
+            <>
+              <AttendanceRecord
+                shift={activeShift}
+                onAttendanceRecorded={fetchShift}
                 status={status}
-                currentTime={currentTime}
                 setStatus={setStatus}
-                fetchShift={fetchShift}
+                currentTime={currentTime}
               />
-            ) : null;
-          })()}
+              {(() => {
+                const ATTENDANCE_GRACE_MINS = 5;
+                const startMs = new Date(activeShift.startsAt).getTime();
+                const graceEndMs = startMs + ATTENDANCE_GRACE_MINS * 60000;
+                const isAttendanceLate = !activeShift.attendance && currentTime.getTime() > graceEndMs;
+
+                return activeShift.attendance || isAttendanceLate ? (
+                  <CheckInCard
+                    activeShift={activeShift}
+                    loading={loading}
+                    status={status}
+                    currentTime={currentTime}
+                    setStatus={setStatus}
+                    fetchShift={fetchShift}
+                  />
+                ) : null;
+              })()}
+            </>
+          )}
         </>
       )}
-
-      {/* Display Next Shift if available and no active shift */}
-      {!activeShift && nextShift && <NextShiftCard shift={nextShift} />}
 
       <div className="mt-8 border-t pt-6">
         <Button onClick={() => setShowPasswordChange(true)} variant="secondary" className="w-full mb-4">

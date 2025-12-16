@@ -148,12 +148,17 @@ export default function GuardPage() {
     }
   };
 
-  useEffect(() => {
-    const intervalId = setInterval(async () => {
-      await Promise.all([fetchGuardDetails(), fetchShift()]);
-    }, 2 * 60 * 1000); // 2 minutes in milliseconds
+  // useEffect(() => {
+  //   const intervalId = setInterval(async () => {
+  //     await Promise.all([fetchGuardDetails(), fetchShift()]);
+  //   }, 2 * 60 * 1000); // 2 minutes in milliseconds
 
-    return () => clearInterval(intervalId);
+  //   return () => clearInterval(intervalId);
+  // }, []);
+
+    useEffect(() => {
+    fetchGuardDetails();
+    fetchShift();
   }, []);
 
   const handleLogout = async () => {

@@ -6,6 +6,10 @@ import { z } from 'zod'; // Import z for Zod validation
 // Define a schema for the incoming request body
 const attendanceSchema = z.object({
   shiftId: z.string().uuid(),
+  location: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).optional(),
 });
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -19,7 +23,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   try {
     const json = await req.json();
-    attendanceSchema.parse(json);
+    const parsedBody = attendanceSchema.parse(json); // Use parsedBody for type-safe access
 
     // 1. Fetch Shift
     const shift = await prisma.shift.findUnique({
@@ -40,6 +44,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Attendance already recorded for this shift' }, { status: 400 });
     }
 
+    // Prepare metadata if location data is present
+    const metadata = parsedBody.location ? { location: parsedBody.location } : undefined;
+
     // 3. Record Attendance and Update Shift
     const result = await prisma.$transaction(async tx => {
       const attendance = await tx.attendance.create({
@@ -47,7 +54,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           shiftId: shift.id,
           recordedAt: new Date(),
           status: 'present', // Assuming 'present' for initial attendance record
-          // picture and metadata are optional for now, as per user request
+          metadata: metadata, // Store location data in metadata
         },
       });
 

@@ -50,6 +50,7 @@ export default async function AttendancePage(props: AttendancePageProps) {
           include: {
             guard: true,
             site: true,
+            shiftType: true,
           },
         },
       },

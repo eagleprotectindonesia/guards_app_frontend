@@ -63,6 +63,13 @@ export async function createShift(prevState: ActionState, formData: FormData): P
       endDateTime = addDays(endDateTime, 1);
     }
 
+    if (isBefore(startDateTime, new Date())) {
+      return {
+        message: 'Cannot schedule a shift in the past.',
+        success: false,
+      };
+    }
+
     // Check for overlapping shifts
     if (guardId) {
       const conflictingShift = await prisma.shift.findFirst({
@@ -317,6 +324,11 @@ export async function bulkCreateShifts(
 
       if (isBefore(endDateTime, startDateTime)) {
         endDateTime = addDays(endDateTime, 1);
+      }
+
+      if (isBefore(startDateTime, new Date())) {
+        errors.push(`Row ${i + 1}: Cannot schedule a shift in the past.`);
+        continue;
       }
 
       // Check intra-batch overlap

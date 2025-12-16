@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Attendance, Guard, Shift, Site } from '@prisma/client';
+import { Attendance, Guard, Shift, ShiftType, Site } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
 import PaginationNav from '../../components/pagination-nav';
 import { MapPin, Clock, Filter, Calendar } from 'lucide-react';
@@ -32,6 +32,7 @@ type AttendanceWithRelations = Attendance & {
   shift: Shift & {
     guard: Guard | null;
     site: Site;
+    shiftType: ShiftType;
   };
 };
 
@@ -148,7 +149,7 @@ export default function AttendanceList({
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-600">
                       <Calendar className="w-3 h-3 text-gray-400 inline mr-1" />
-                      {new Date(attendance.shift.date).toLocaleDateString()}
+                      {attendance.shift.shiftType.name}
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500">
                       {new Date(attendance.shift.date).toLocaleDateString()}
@@ -185,10 +186,10 @@ export default function AttendanceList({
                       )}
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-600">
-                      {hasValidLocation(attendance.metadata) ? (
+                      {hasValidLocation(attendance.metadata?.location) ? (
                         <div className="flex flex-col">
-                          <div>Lat: {attendance.metadata.lat.toFixed(3)}</div>
-                          <div>Lng: {attendance.metadata.lng.toFixed(3)}</div>
+                          <div>Lat: {attendance.metadata?.location.lat.toFixed(3)}</div>
+                          <div>Lng: {attendance.metadata?.location.lng.toFixed(3)}</div>
                         </div>
                       ) : (
                         '-'

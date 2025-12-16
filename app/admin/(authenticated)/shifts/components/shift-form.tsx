@@ -114,6 +114,7 @@ export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
             selected={date}
             onChange={d => setDate(d)}
             dateFormat="yyyy-MM-dd"
+            minDate={new Date()}
             className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
             wrapperClassName="w-full"
           />

@@ -41,6 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // 3. Calculate Status using Shared Logic
     const windowResult = calculateCheckInWindow(
       shift.startsAt,
+      shift.endsAt,
       shift.requiredCheckinIntervalMins,
       shift.graceMinutes,
       now,
@@ -92,6 +93,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
       if (status === 'on_time') {
         updateData.missedCount = 0;
+      }
+
+      // Check if this is the last check-in
+      if (windowResult.nextSlotStart.getTime() >= shift.endsAt.getTime()) {
+        updateData.status = 'completed';
       }
 
       await tx.shift.update({

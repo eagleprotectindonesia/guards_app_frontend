@@ -49,13 +49,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             });
             
             if (alert.reason === 'missed_checkin') {
+                const updateData: any = {};
+                
                 // For missed checkin, we decrement the missed count as it was incremented on alert creation
                 if (alert.shift.missedCount > 0) {
+                     updateData.missedCount = { decrement: 1 };
+                }
+                
+                // Check if this was the last checkin
+                const intervalMs = alert.shift.requiredCheckinIntervalMins * 60000;
+                const nextSlotStartMs = new Date(alert.windowStart).getTime() + intervalMs;
+                
+                if (nextSlotStartMs >= new Date(alert.shift.endsAt).getTime()) {
+                    updateData.status = 'completed';
+                }
+
+                if (Object.keys(updateData).length > 0) {
                      await tx.shift.update({
                         where: { id: alert.shiftId },
-                        data: {
-                            missedCount: { decrement: 1 }
-                        }
+                        data: updateData
                     });
                 }
             } else if (alert.reason === 'missed_attendance') {

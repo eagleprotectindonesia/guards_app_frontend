@@ -30,6 +30,7 @@ export async function GET(req: Request) {
     if (activeShift) {
       const window = calculateCheckInWindow(
         activeShift.startsAt,
+        activeShift.endsAt,
         activeShift.requiredCheckinIntervalMins,
         activeShift.graceMinutes,
         now,

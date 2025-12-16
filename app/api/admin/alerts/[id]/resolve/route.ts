@@ -5,7 +5,7 @@ import { getAdminIdFromToken } from '@/lib/admin-auth';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  
+
   const adminId = await getAdminIdFromToken();
 
   if (!adminId) {
@@ -25,9 +25,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   try {
-    const alert = await prisma.alert.findUnique({ 
+    const alert = await prisma.alert.findUnique({
         where: { id },
-        include: { shift: true } 
+        include: { shift: true }
     });
 
     if (!alert) {
@@ -37,7 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (outcome === 'forgive') {
         // FORGIVE: Soft Delete (Mark as forgiven)
         const updatedAlert = await prisma.$transaction(async tx => {
-            const a = await tx.alert.update({ 
+            const a = await tx.alert.update({
                 where: { id },
                 data: {
                     resolvedAt: new Date(),
@@ -45,21 +45,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                     resolutionType: 'forgiven',
                     resolutionNote: note,
                 },
-                include: { shift: true }
+                include: {
+                    site: true,
+                    resolverAdmin: true,
+                    ackAdmin: true,
+                    shift: {
+                        include: {
+                            guard: true,
+                            shiftType: true,
+                        },
+                    },
+                }
             });
-            
+
             if (alert.reason === 'missed_checkin') {
                 const updateData: any = {};
-                
+
                 // For missed checkin, we decrement the missed count as it was incremented on alert creation
                 if (alert.shift.missedCount > 0) {
                      updateData.missedCount = { decrement: 1 };
                 }
-                
+
                 // Check if this was the last checkin
                 const intervalMs = alert.shift.requiredCheckinIntervalMins * 60000;
                 const nextSlotStartMs = new Date(alert.windowStart).getTime() + intervalMs;
-                
+
                 if (nextSlotStartMs >= new Date(alert.shift.endsAt).getTime()) {
                     updateData.status = 'completed';
                 }
@@ -97,7 +107,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                     });
                 }
             }
-            
+
             return a;
         });
 
@@ -107,7 +117,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             alert: updatedAlert,
         };
         await redis.publish(`alerts:site:${alert.siteId}`, JSON.stringify(payload));
-        
+
         return NextResponse.json({ success: true, outcome: 'forgive', alert: updatedAlert });
     } else {
         // RESOLVE: Mark as resolved (standard)
@@ -120,7 +130,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                     resolutionType: 'standard',
                     resolutionNote: note,
                 },
-                include: { shift: true },
+                include: {
+                    site: true,
+                    resolverAdmin: true,
+                    ackAdmin: true,
+                    shift: {
+                        include: {
+                            guard: true,
+                            shiftType: true,
+                        },
+                    },
+                },
             });
 
             if (alert.reason === 'missed_attendance') {

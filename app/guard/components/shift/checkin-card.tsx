@@ -112,6 +112,7 @@ export default function CheckInCard({
         } else {
           message = 'Jendela terlewat';
           isWindowOpen = false;
+          fetchShift().catch(console.error);
         }
       } else if (window.status === 'late') {
         // Late for current, waiting for next

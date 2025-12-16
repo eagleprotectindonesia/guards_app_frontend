@@ -89,6 +89,7 @@ export default function AdminAlertsPage() {
 
   const handleAcknowledge = async (alertId: string) => {
     try {
+      // Optimistically update the acknowledged status
       setAlerts(prev =>
         prev.map(a => {
           if (a.id !== alertId) return a;
@@ -98,6 +99,9 @@ export default function AdminAlertsPage() {
           };
         })
       );
+
+      // Trigger the server update which will send the SSE update with full data
+      await fetch(`/api/admin/alerts/${alertId}/acknowledge`, { method: 'POST' });
     } catch (err) {
       console.error(err);
     }

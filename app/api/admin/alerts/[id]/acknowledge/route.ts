@@ -16,9 +16,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       where: { id },
       data: {
         acknowledgedAt: new Date(),
-        acknowledgedById: adminId, // Use acknowledgedById
+        acknowledgedById: adminId,
       },
-      include: { shift: true }, // Include shift to get necessary data for SSE payload
+      include: {
+        site: true,
+        resolverAdmin: true,
+        ackAdmin: true,
+        shift: {
+          include: {
+            guard: true,
+            shiftType: true,
+          },
+        },
+      },
     });
 
     // Publish update

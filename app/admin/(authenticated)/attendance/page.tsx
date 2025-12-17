@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
-import { serialize, getPaginationParams } from '@/lib/utils';
-import AttendanceList from './components/attendance-list';
+import { serialize, getPaginationParams, Serialized } from '@/lib/utils';
+import AttendanceList, { AttendanceWithRelations } from './components/attendance-list';
 import { Suspense } from 'react';
 import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay } from 'date-fns';
@@ -61,7 +61,7 @@ export default async function AttendancePage(props: AttendancePageProps) {
     }),
   ]);
 
-  const serializedAttendances = serialize(attendances);
+  const serializedAttendances = serialize(attendances) as Serialized<AttendanceWithRelations>[];
   const serializedGuards = serialize(guards);
 
   const initialFilters = {

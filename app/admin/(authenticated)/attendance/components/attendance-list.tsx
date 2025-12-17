@@ -12,8 +12,10 @@ import { format } from 'date-fns';
 
 // Define a type for the attendance metadata that includes location information
 type AttendanceMetadata = {
-  lat: number;
-  lng: number;
+  location: {
+    lat: number;
+    lng: number;
+  };
 };
 
 // Type guard to check if an object has valid location data
@@ -28,12 +30,13 @@ function hasValidLocation(metadata: unknown): metadata is AttendanceMetadata {
   );
 }
 
-type AttendanceWithRelations = Attendance & {
+export type AttendanceWithRelations = Omit<Attendance, 'metadata'> & {
   shift: Shift & {
     guard: Guard | null;
     site: Site;
     shiftType: ShiftType;
   };
+  metadata: AttendanceMetadata;
 };
 
 type AttendanceListProps = {

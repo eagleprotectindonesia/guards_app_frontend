@@ -40,7 +40,7 @@ export default function GuardList({
   const [isBulkCreateOpen, setIsBulkCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const handleSort = (field: 'name' | 'guardCode' | 'joinDate') => {
+  const handleSort = (field: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
     // Determine the new sort order

@@ -7,7 +7,7 @@
     "dev:https": "concurrently --prefix-colors \"bgBlue.bold,bgMagenta.bold\" --names \"NEXT,WORKER\" \"next dev --experimental-https\" \"tsx --watch worker.ts\"",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "tsc --noEmit && eslint",
     "postinstall": "prisma generate"
   },
   "dependencies": {

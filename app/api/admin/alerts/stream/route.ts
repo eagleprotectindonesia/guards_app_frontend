@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import Redis from 'ioredis';
+import { Guard, Site, ShiftType, Attendance } from '@prisma/client';
+
+type ShiftWithRelations = {
+  id: string;
+  guard: Guard;
+  shiftType: ShiftType;
+  startsAt: Date;
+  endsAt: Date;
+  status: string;
+  missedCount: number;
+  attendance: Attendance;
+};
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -59,21 +71,21 @@ export async function GET(req: Request) {
           include: { shiftType: true, guard: true, site: true, attendance: true },
         });
 
-        const activeSitesMap = new Map<string, { site: any; shifts: any[] }>();
+        const activeSitesMap = new Map<string, { site: Site; shifts: ShiftWithRelations[] }>();
         for (const shift of shifts) {
           if (!activeSitesMap.has(shift.siteId)) {
             activeSitesMap.set(shift.siteId, { site: shift.site, shifts: [] });
           }
           activeSitesMap.get(shift.siteId)?.shifts.push({
             id: shift.id,
-            guard: shift.guard,
+            guard: shift.guard as Guard,
             shiftType: shift.shiftType,
             startsAt: shift.startsAt,
             endsAt: shift.endsAt,
             status: shift.status,
-            checkInCount: shift.checkInCount,
+            // checkInCount: shift.checkInCount,
             missedCount: shift.missedCount,
-            attendance: shift.attendance,
+            attendance: shift.attendance as Attendance,
           });
         }
         const activeSitesPayload = Array.from(activeSitesMap.values());
@@ -147,12 +159,12 @@ export async function GET(req: Request) {
         try {
           const ping = `: ping\n\n`;
           controller.enqueue(encoder.encode(ping));
-        } catch (e) {
+        } catch {
           clearInterval(interval);
         }
       }, 30000);
     },
-    async cancel(reason) {
+    async cancel() {
       if (interval) clearInterval(interval);
       await subscriber.quit();
     },

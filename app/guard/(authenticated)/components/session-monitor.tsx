@@ -12,11 +12,11 @@ export default function SessionMonitor() {
     const connect = () => {
       eventSource = new EventSource('/api/guard/notifications/stream');
 
-      eventSource.onmessage = (event) => {
+      eventSource.onmessage = () => {
         // Handle generic messages if any
       };
 
-      eventSource.addEventListener('force_logout', async (event) => {
+      eventSource.addEventListener('force_logout', async () => {
         try {
           // Perform logout
           await fetch('/api/auth/guard/logout', { method: 'POST' });
@@ -29,7 +29,7 @@ export default function SessionMonitor() {
         }
       });
 
-      eventSource.onerror = (err) => {
+      eventSource.onerror = () => {
         // If 401 or similar, we might want to stop.
         // EventSource doesn't give status codes easily in onerror.
         // But if connection fails repeatedly, we usually just let it retry.

@@ -20,7 +20,7 @@ type CheckInCardProps = {
   fetchShift: () => Promise<void>;
 };
 
-export default function CheckInCard({ activeShift, loading, status, setStatus, fetchShift }: CheckInCardProps) {
+export default function CheckInCard({ activeShift, status, setStatus, fetchShift }: CheckInCardProps) {
   const { fetchWithAuth } = useGuardApi();
   const [timeLeft, setTimeLeft] = useState<string>('');
   const [canCheckIn, setCanCheckIn] = useState(false);
@@ -29,8 +29,6 @@ export default function CheckInCard({ activeShift, loading, status, setStatus, f
   // Sync state with activeShift window data
   useEffect(() => {
     if (!activeShift?.checkInWindow) {
-      setCanCheckIn(false);
-      setTimeLeft('');
       return;
     }
     const formatTime = (seconds: number) => {

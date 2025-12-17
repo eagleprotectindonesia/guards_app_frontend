@@ -3,6 +3,15 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay } from 'date-fns';
 
+const include = {
+  site: true,
+  shift: { include: { guard: true } },
+  ackAdmin: true,
+  resolverAdmin: true,
+} satisfies Prisma.AlertInclude;
+
+type AlertWithRels = Prisma.AlertGetPayload<{ include: typeof include }>;
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const startDateStr = searchParams.get('startDate');
@@ -40,36 +49,28 @@ export async function GET(request: NextRequest) {
         'Resolved By',
         'Resolved At',
         'Resolution Type',
-        'Resolution Note'
+        'Resolution Note',
       ];
       controller.enqueue(encoder.encode(headers.join(',') + '\n'));
 
-      let cursor: string | undefined = undefined;
+      let cursorId: string | null = null;
 
       try {
         while (true) {
-          const queryOptions: Prisma.AlertFindManyArgs = {
+          const args: Prisma.AlertFindManyArgs = {
             take: BATCH_SIZE,
             where,
             orderBy: { id: 'asc' },
-            include: {
-              site: true,
-              shift: {
-                include: {
-                  guard: true,
-                },
-              },
-              ackAdmin: true,
-              resolverAdmin: true,
-            },
+            include,
           };
 
-          if (cursor) {
-             queryOptions.skip = 1;
-             queryOptions.cursor = { id: cursor };
+          // Avoid the spread + union weirdness by assigning conditionally
+          if (cursorId !== null) {
+            args.skip = 1;
+            args.cursor = { id: cursorId };
           }
 
-          const batch = await prisma.alert.findMany(queryOptions);
+          const batch = (await prisma.alert.findMany(args)) as AlertWithRels[];
 
           if (batch.length === 0) {
             break;
@@ -79,46 +80,38 @@ export async function GET(request: NextRequest) {
           for (const alert of batch) {
             // Helper to escape CSV fields
             const escape = (str: string | null | undefined) => {
-                if (!str) return '';
-                return `"${str.replace(/"/g, '""')}"`;
+              if (!str) return '';
+              return `"${str.replace(/"/g, '""')}"`;
             };
 
             const siteName = alert.site.name;
-            // The type of batch includes relations, but TypeScript inside this loop might need help 
-            // if we didn't explicitly type 'batch'. However, Prisma client usually infers correctly.
-            // Casting 'alert' to any or specific type if needed, but let's try standard inference.
-            // @ts-ignore: Prisma include inference can be tricky in loops
             const guardName = alert.shift?.guard?.name || 'Unassigned';
-            
+
             const createdAt = new Date(alert.createdAt).toLocaleString();
             const windowStart = new Date(alert.windowStart).toLocaleString();
-            
-            let status = 'Open';
-            if (alert.resolvedAt) status = 'Resolved';
-            else if (alert.acknowledgedAt) status = 'Acknowledged';
 
-            // @ts-ignore
+            const status = alert.resolvedAt ? 'Resolved' : alert.acknowledgedAt ? 'Acknowledged' : 'Open';
+
             const ackByName = alert.ackAdmin?.name || '';
             const ackAt = alert.acknowledgedAt ? new Date(alert.acknowledgedAt).toLocaleString() : '';
-            
-            // @ts-ignore
+
             const resByName = alert.resolverAdmin?.name || '';
             const resAt = alert.resolvedAt ? new Date(alert.resolvedAt).toLocaleString() : '';
 
             const row = [
-                escape(siteName),
-                escape(guardName),
-                escape(alert.reason),
-                escape(alert.severity),
-                escape(createdAt),
-                escape(windowStart),
-                escape(status),
-                escape(ackByName),
-                escape(ackAt),
-                escape(resByName),
-                escape(resAt),
-                escape(alert.resolutionType),
-                escape(alert.resolutionNote)
+              escape(siteName),
+              escape(guardName),
+              escape(alert.reason),
+              escape(alert.severity),
+              escape(createdAt),
+              escape(windowStart),
+              escape(status),
+              escape(ackByName),
+              escape(ackAt),
+              escape(resByName),
+              escape(resAt),
+              escape(alert.resolutionType),
+              escape(alert.resolutionNote),
             ];
 
             chunk += row.join(',') + '\n';
@@ -130,7 +123,7 @@ export async function GET(request: NextRequest) {
             break;
           }
 
-          cursor = batch[batch.length - 1].id;
+          cursorId = batch[batch.length - 1].id;
         }
       } catch (error) {
         console.error('Export stream error:', error);

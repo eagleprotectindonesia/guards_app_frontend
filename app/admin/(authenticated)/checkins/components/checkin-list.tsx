@@ -5,22 +5,23 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Checkin, Guard, Shift, Site } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
 import PaginationNav from '../../components/pagination-nav';
-import { MapPin, Clock, Filter, Globe } from 'lucide-react'; // Added Globe icon
+import { MapPin, Clock, Filter } from 'lucide-react'; // Added Globe icon
 import CheckinFilterModal from './checkin-filter-modal';
 import CheckinExport from './checkin-export';
 import { format } from 'date-fns';
+import { JsonValue } from '@prisma/client/runtime/library';
 
 // Define the type for a Checkin with its relations
 // Define a type for the checkin metadata that includes location information
 type CheckinMetadata = {
   lat: number;
   lng: number;
-} & Record<string, any>; // Allow additional properties
+}
 
 // Type guard to check if an object has valid location data
-function hasValidLocation(metadata: any): metadata is CheckinMetadata {
+function hasValidLocation(metadata:JsonValue): metadata is CheckinMetadata {
   return (
-    metadata &&
+    !!metadata &&
     typeof metadata === 'object' &&
     'lat' in metadata &&
     'lng' in metadata &&

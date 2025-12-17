@@ -41,8 +41,8 @@ export async function GET() {
                 controller.enqueue(encoder.encode(event));
               }
             }
-          } catch (e) {
-            console.error('Error parsing Redis message:', e);
+          } catch {
+            console.error('Error parsing Redis message:');
           }
         }
       });
@@ -52,12 +52,12 @@ export async function GET() {
         try {
           const ping = `: ping\n\n`;
           controller.enqueue(encoder.encode(ping));
-        } catch (e) {
+        } catch {
           clearInterval(interval);
         }
       }, 30000);
     },
-    async cancel(reason) {
+    async cancel() {
       if (interval) clearInterval(interval);
       await subscriber.quit();
     },

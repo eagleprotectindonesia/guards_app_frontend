@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import AlertFeed, { AlertWithRelations } from '../components/alert-feed';
 import PaginationNav from '../components/pagination-nav';
 import AlertExport from '../components/alert-export';
-import { useAlerts, SSEAlertData } from '../context/alert-context';
+import { useAlerts } from '../context/alert-context';
 
 export default function AdminAlertsPage() {
   const searchParams = useSearchParams();

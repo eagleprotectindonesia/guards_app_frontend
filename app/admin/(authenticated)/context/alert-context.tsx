@@ -63,7 +63,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
   const [alerts, setAlerts] = useState<AlertWithRelations[]>([]);
   const [activeSites, setActiveSites] = useState<ActiveSiteData[]>([]);
   const [upcomingShifts, setUpcomingShifts] = useState<UpcomingShift[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState('Disconnected');
+  const [connectionStatus, setConnectionStatus] = useState('Connecting...');
   const [lastAlertEvent, setLastAlertEvent] = useState<SSEAlertData | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -71,8 +71,6 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
     // Always connect to global stream
     const url = '/api/admin/alerts/stream';
     const es = new EventSource(url);
-
-    setConnectionStatus('Connecting...');
 
     es.onopen = () => setConnectionStatus('Connected');
 

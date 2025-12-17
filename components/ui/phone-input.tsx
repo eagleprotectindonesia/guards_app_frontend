@@ -28,7 +28,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ id, inputName, defaultValue, on
     if (defaultValue) {
       try {
         return parsePhoneNumberWithError(defaultValue as string)?.country || 'ID';
-      } catch (error) {
+      } catch {
         return 'ID';
       }
     }

@@ -37,7 +37,7 @@ export async function changePassword(prevState: ChangePasswordState, formData: F
   });
 
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    return { error: validation.error.issues[0].message };
   }
 
   // 2. Validate Auth
@@ -53,6 +53,7 @@ export async function changePassword(prevState: ChangePasswordState, formData: F
     const decoded = jwt.verify(token, JWT_SECRET) as { adminId: string };
     adminId = decoded.adminId;
   } catch (error) {
+    console.error('Invalid session:', error);
     return { error: 'Invalid session' };
   }
 

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { createShiftSchema } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import { parse, addDays, isBefore } from 'date-fns';
+import { Shift } from '@prisma/client';
 
 export type ActionState = {
   message?: string;
@@ -251,7 +252,18 @@ export async function bulkCreateShifts(
   const guardMap = new Map(guards.map(g => [g.name.toLowerCase(), g.id])); // Changed to use name instead of code
 
   const errors: string[] = [];
-  const shiftsToCreate: any[] = [];
+  const shiftsToCreate: Pick<
+    Shift,
+    | 'siteId'
+    | 'shiftTypeId'
+    | 'guardId'
+    | 'date'
+    | 'requiredCheckinIntervalMins'
+    | 'graceMinutes'
+    | 'startsAt'
+    | 'endsAt'
+    | 'status'
+  >[] = [];
 
   // Skip header row
   const startRow = 1;
@@ -268,7 +280,9 @@ export async function bulkCreateShifts(
     // Expected: Site Name, Shift Type Name, Date, Guard Name, Required Check-in Interval (minutes), Grace Period (minutes)
     if (cols.length < 6) {
       errors.push(
-        `Row ${i + 1}: Insufficient columns. Expected at least 6 (Site Name, Shift Type Name, Date, Guard Name, Required Check-in Interval, Grace Period).`
+        `Row ${
+          i + 1
+        }: Insufficient columns. Expected at least 6 (Site Name, Shift Type Name, Date, Guard Name, Required Check-in Interval, Grace Period).`
       );
       continue;
     }
@@ -277,7 +291,9 @@ export async function bulkCreateShifts(
 
     if (!siteName || !shiftTypeName || !dateStr || !guardName || !intervalStr || !graceStr) {
       errors.push(
-        `Row ${i + 1}: Missing required fields. Ensure Site Name, Shift Type Name, Date, Guard Name, Required Check-in Interval, and Grace Period are provided.`
+        `Row ${
+          i + 1
+        }: Missing required fields. Ensure Site Name, Shift Type Name, Date, Guard Name, Required Check-in Interval, and Grace Period are provided.`
       );
       continue;
     }
@@ -293,7 +309,8 @@ export async function bulkCreateShifts(
     }
 
     const guardId = guardName ? guardMap.get(guardName.toLowerCase()) || null : null;
-    if (!guardId && guardName) { // Only show error if a guard name was provided but not found
+    if (!guardId && guardName) {
+      // Only show error if a guard name was provided but not found
       errors.push(`Row ${i + 1}: Guard with name '${guardName}' not found or inactive.`);
     }
 
@@ -315,7 +332,16 @@ export async function bulkCreateShifts(
       errors.push(`Row ${i + 1}: Invalid Grace Period '${graceStr}'. Must be a non-negative integer.`);
     }
 
-    if (siteId && shiftType && dateRegex.test(dateStr) && (guardId || guardName === '') && !isNaN(interval) && interval > 0 && !isNaN(grace) && grace >= 0) {
+    if (
+      siteId &&
+      shiftType &&
+      dateRegex.test(dateStr) &&
+      (guardId || guardName === '') &&
+      !isNaN(interval) &&
+      interval > 0 &&
+      !isNaN(grace) &&
+      grace >= 0
+    ) {
       // guardId is now optional (can be null)
       // Prepare data
       const dateObj = new Date(`${dateStr}T00:00:00Z`);
@@ -333,10 +359,8 @@ export async function bulkCreateShifts(
 
       // Check intra-batch overlap
       if (guardId) {
-        const overlapInBatch = shiftsToCreate.find(s =>
-          s.guardId === guardId &&
-          s.startsAt < endDateTime &&
-          s.endsAt > startDateTime
+        const overlapInBatch = shiftsToCreate.find(
+          s => s.guardId === guardId && s.startsAt < endDateTime && s.endsAt > startDateTime
         );
 
         if (overlapInBatch) {

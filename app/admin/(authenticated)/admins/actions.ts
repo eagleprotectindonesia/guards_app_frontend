@@ -71,7 +71,7 @@ export async function createAdmin(prevState: ActionState, formData: FormData): P
         name,
         email,
         hashedPassword,
-        role: role as any,
+        role: role,
       },
     });
   } catch (error) {
@@ -95,16 +95,14 @@ export async function updateAdmin(id: string, prevState: ActionState, formData: 
     };
   }
 
-  const rawData: any = {
+  const password = formData.get('password');
+
+  const rawData = {
     name: formData.get('name'),
     email: formData.get('email'),
     role: formData.get('role'),
+    ...(password && typeof password === 'string' && password.length > 0 && { password }),
   };
-
-  const password = formData.get('password');
-  if (password && typeof password === 'string' && password.length > 0) {
-    rawData.password = password;
-  }
 
   const validatedFields = updateAdminSchema.safeParse(rawData);
 
@@ -135,15 +133,12 @@ export async function updateAdmin(id: string, prevState: ActionState, formData: 
       };
     }
 
-    const data: any = {
+    const data = {
       name,
       email,
-      role: role as any,
+      role,
+      ...(newPassword && { hashedPassword: await bcrypt.hash(newPassword, 10) }),
     };
-
-    if (newPassword) {
-      data.hashedPassword = await bcrypt.hash(newPassword, 10);
-    }
 
     await prisma.admin.update({
       where: { id },
@@ -177,7 +172,7 @@ export async function deleteAdmin(id: string) {
       return { success: false, message: 'Admin not found.' };
     }
 
-    if ((adminToDelete as any).role === 'superadmin') {
+    if (adminToDelete.role === 'superadmin') {
       return { success: false, message: 'Cannot delete a Super Admin. Change their role to Admin first.' };
     }
 

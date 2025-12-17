@@ -41,7 +41,6 @@ type ShiftListProps = {
 export default function ShiftList({
   shifts,
   sites,
-  shiftTypes,
   guards,
   startDate,
   endDate,

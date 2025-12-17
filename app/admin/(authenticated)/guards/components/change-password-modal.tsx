@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useEffect } from 'react';
+import { useActionState, useEffect } from 'react';
 import Modal from '../../components/modal';
 import { updateGuardPassword, ActionState } from '../actions';
 import { PasswordInput } from '@/components/ui/password-input';

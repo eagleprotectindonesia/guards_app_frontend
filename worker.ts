@@ -23,6 +23,16 @@ type CachedShift = Shift & {
   lastAttentionIndexSent?: number;
 };
 
+type BroadcastedShift = {
+  id: string;
+  guard: Guard | null;
+  shiftType: ShiftType;
+  startsAt: Date;
+  endsAt: Date;
+  status: string;
+  missedCount: number;
+  attendance: Attendance | null;
+};
 class SchedulingWorker {
   private cachedShifts: CachedShift[] = [];
   private shiftStates = new Map<string, { lastAttentionIndexSent?: number }>();
@@ -160,7 +170,7 @@ class SchedulingWorker {
         // "late" means we are past the grace period of currentSlotStart
         // So check if we have alerted for this specific slot start
         const dueTime = windowResult.currentSlotStart;
-        
+
         const existingAlert = await prisma.alert.findUnique({
           where: {
             shiftId_reason_windowStart: {
@@ -172,8 +182,10 @@ class SchedulingWorker {
         });
 
         if (!existingAlert) {
-           console.log(`Detected missed checkin for shift ${shift.id} (Guard: ${shift.guard?.name}) at ${dueTime.toISOString()}`);
-           await this.createAlert(shift, 'missed_checkin', dueTime, true);
+          console.log(
+            `Detected missed checkin for shift ${shift.id} (Guard: ${shift.guard?.name}) at ${dueTime.toISOString()}`
+          );
+          await this.createAlert(shift, 'missed_checkin', dueTime, true);
         }
       }
 
@@ -181,35 +193,41 @@ class SchedulingWorker {
       // We want to warn if status is 'open' BUT we are nearing the end.
       // E.g. 1 minute left.
       if (windowResult.status === 'open') {
-         // remainingTimeMs is time until currentSlotEndMs
-         if (windowResult.remainingTimeMs <= 60000) { // Less than 1 min left
-            // Ensure we haven't sent this already for this slot
-            // Identify slot by index or timestamp
-            // currentSlotStart is unique for the slot.
-            const slotIdentifier = windowResult.currentSlotStart.getTime();
+        // remainingTimeMs is time until currentSlotEndMs
+        if (windowResult.remainingTimeMs <= 60000) {
+          // Less than 1 min left
+          // Ensure we haven't sent this already for this slot
+          // Identify slot by index or timestamp
+          // currentSlotStart is unique for the slot.
+          const slotIdentifier = windowResult.currentSlotStart.getTime();
 
-            // Store sent state as timestamp instead of index to match new logic
-            // Or map timestamp to index? calculateCheckInWindow uses internal index but returns start time.
-            // Let's rely on timestamp.
-            
-            // We need to check if we already sent attention for THIS slot.
-            // We can convert slotIdentifier back to index if needed, or just store lastAttentionTime.
-            // Simplified: lastAttentionForSlotStartMs
-            
-            // But we stored lastAttentionIndexSent in DB/Cache.
-            // Let's derive index from time.
-            const intervalMs = shift.requiredCheckinIntervalMins * 60000;
-            const index = Math.round((slotIdentifier - startMs) / intervalMs);
+          // Store sent state as timestamp instead of index to match new logic
+          // Or map timestamp to index? calculateCheckInWindow uses internal index but returns start time.
+          // Let's rely on timestamp.
 
-            if (shift.lastAttentionIndexSent !== index) {
-               await this.sendAttentionEvent(shift, index, windowResult.currentSlotStart, now);
-            }
-         }
+          // We need to check if we already sent attention for THIS slot.
+          // We can convert slotIdentifier back to index if needed, or just store lastAttentionTime.
+          // Simplified: lastAttentionForSlotStartMs
+
+          // But we stored lastAttentionIndexSent in DB/Cache.
+          // Let's derive index from time.
+          const intervalMs = shift.requiredCheckinIntervalMins * 60000;
+          const index = Math.round((slotIdentifier - startMs) / intervalMs);
+
+          if (shift.lastAttentionIndexSent !== index) {
+            await this.sendAttentionEvent(shift, index, windowResult.currentSlotStart, now);
+          }
+        }
       }
     }
   }
 
-  private async createAlert(shift: CachedShift, reason: 'missed_attendance' | 'missed_checkin', windowStart: Date, incrementMissedCount = false) {
+  private async createAlert(
+    shift: CachedShift,
+    reason: 'missed_attendance' | 'missed_checkin',
+    windowStart: Date,
+    incrementMissedCount = false
+  ) {
     await prisma.$transaction(async tx => {
       const newAlert = await tx.alert.create({
         data: {
@@ -266,7 +284,7 @@ class SchedulingWorker {
   }
 
   private async broadcastActiveShifts() {
-    const activeSitesMap = new Map<string, { site: Site; shifts: any[] }>();
+    const activeSitesMap = new Map<string, { site: Site; shifts: BroadcastedShift[] }>();
 
     for (const shift of this.cachedShifts) {
       if (!activeSitesMap.has(shift.siteId)) {

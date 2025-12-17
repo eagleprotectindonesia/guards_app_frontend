@@ -29,7 +29,7 @@ export async function getAuthenticatedGuard() {
 
     return guard;
   } catch (error) {
-    // console.error('Guard auth error:', error);
+    console.error('Guard auth error:', error);
     return null;
   }
 }

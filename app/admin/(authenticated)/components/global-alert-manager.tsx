@@ -13,7 +13,7 @@ export default function GlobalAlertManager() {
   // Audio Logic
   useEffect(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio('/audios/alarm.wav');
+      audioRef.current = new Audio('/audios/alarm3.wav');
       audioRef.current.loop = true;
     }
 
@@ -41,7 +41,7 @@ export default function GlobalAlertManager() {
               document.removeEventListener('click', unlockAudio);
               document.removeEventListener('keydown', unlockAudio);
             })
-            .catch(error => {
+            .catch(() => {
               // console.warn('Audio unlock failed:', error);
             });
         }

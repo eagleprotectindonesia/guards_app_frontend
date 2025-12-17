@@ -30,8 +30,12 @@ export default function AdminLogin() {
 
       // Assuming successful login, redirect to admin dashboard
       router.push('/admin/dashboard');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
     }
   };
 

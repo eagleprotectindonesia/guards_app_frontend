@@ -18,7 +18,6 @@ interface AttendanceRecordProps {
 export function AttendanceRecord({
   shift,
   onAttendanceRecorded,
-  status,
   setStatus,
   currentTime,
 }: AttendanceRecordProps) {

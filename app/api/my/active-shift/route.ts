@@ -3,7 +3,7 @@ import { getAuthenticatedGuard } from '@/lib/guard-auth';
 import { prisma } from '@/lib/prisma';
 import { calculateCheckInWindow } from '@/lib/scheduling';
 
-export async function GET(req: Request) {
+export async function GET() {
   const guard = await getAuthenticatedGuard();
 
   if (!guard) {

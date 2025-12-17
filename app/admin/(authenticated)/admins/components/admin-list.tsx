@@ -84,10 +84,12 @@ export default function AdminList({ admins, page, perPage, totalCount }: AdminLi
                     <td className="py-4 px-6 text-sm font-medium text-gray-900">{admin.name}</td>
                     <td className="py-4 px-6 text-sm text-gray-600">{admin.email}</td>
                     <td className="py-4 px-6 text-sm text-gray-600">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        (admin as any).role === 'superadmin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {(admin as any).role || 'admin'}
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          admin.role === 'superadmin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {admin.role || 'admin'}
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">

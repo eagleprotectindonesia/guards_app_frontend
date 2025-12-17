@@ -2,17 +2,17 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { JsonValue } from '@prisma/client/runtime/library';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 // Define a type for JSON-serializable values
-type JsonValue = string | number | boolean | null | { [key: string]: JsonValue } | JsonValue[];
 
 export type Serialized<T> = T extends Date
   ? string
-  : T extends JsonValue
+  : [T] extends [JsonValue]
   ? T
   : T extends (infer U)[]
   ? Serialized<U>[]
@@ -53,9 +53,7 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
   const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c; // in metres

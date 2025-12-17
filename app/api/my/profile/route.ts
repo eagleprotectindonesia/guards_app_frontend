@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedGuard } from '@/lib/guard-auth';
 
-export async function GET(req: Request) {
+export async function GET() {
   const guardAuth = await getAuthenticatedGuard();
 
   if (!guardAuth) {

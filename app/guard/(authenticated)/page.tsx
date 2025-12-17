@@ -12,6 +12,7 @@ import { ShiftInfoCard } from '@/app/guard/components/shift/shift-info-card';
 import { NextShiftCard } from '@/app/guard/components/shift/next-shift-card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { PasswordChangeForm } from '@/app/guard/components/password-change/password-change-form';
+import { CheckInWindowResult } from '@/lib/scheduling';
 
 // Type for password change form state
 type PasswordChangeState = {
@@ -61,7 +62,7 @@ async function changeGuardPasswordAction(
   }
 }
 
-const parseShiftDates = (shift: any) => {
+const parseShiftDates = (shift: ShiftWithRelations & { checkInWindow?: CheckInWindowResult }) => {
   if (!shift) return null;
   return {
     ...shift,

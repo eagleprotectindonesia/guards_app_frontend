@@ -192,7 +192,10 @@ export async function bulkCreateGuards(
   }
 
   const errors: string[] = [];
-  const guardsToCreate: any[] = [];
+  const guardsToCreate: Pick<
+    Guard,
+    'name' | 'phone' | 'guardCode' | 'note' | 'joinDate' | 'hashedPassword' | 'status'
+  >[] = [];
   const phonesToCheck: string[] = [];
 
   // Skip header row
@@ -324,11 +327,11 @@ export async function bulkCreateGuards(
     guardsToCreate.push({
       name: validationResult.data.name,
       phone: validationResult.data.phone,
-      guardCode: validationResult.data.guardCode,
-      note: validationResult.data.note,
-      joinDate: validationResult.data.joinDate, // This is ISO string
-      hashedPassword: hashedPasswordForGuard, // Use the password from CSV
-      status: true, // Default to active
+      guardCode: validationResult.data.guardCode || null,
+      note: validationResult.data.note || null,
+      joinDate: validationResult.data.joinDate as unknown as Date,
+      hashedPassword: hashedPasswordForGuard,
+      status: true,
     });
   }
 

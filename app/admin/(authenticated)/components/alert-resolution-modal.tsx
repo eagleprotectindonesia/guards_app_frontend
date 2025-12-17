@@ -7,9 +7,10 @@ interface AlertResolutionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (outcome: 'resolve' | 'forgive', note: string) => Promise<void>;
+  alertType?: string;
 }
 
-export default function AlertResolutionModal({ isOpen, onClose, onConfirm }: AlertResolutionModalProps) {
+export default function AlertResolutionModal({ isOpen, onClose, onConfirm, alertType }: AlertResolutionModalProps) {
   const [outcome, setOutcome] = useState<'resolve' | 'forgive'>('resolve');
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,9 +49,11 @@ export default function AlertResolutionModal({ isOpen, onClose, onConfirm }: Ale
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
-              <span className="font-semibold mb-1">Standard Resolve</span>
+              <span className="font-semibold mb-1">Reject</span>
               <span className="text-xs text-center opacity-80">
-                Mark as resolved but keep &quot;Missed&quot; count.
+                {alertType === 'missed_attendance'
+                  ? 'Record attendance as absent'
+                  : 'Mark as resolved but keep "Missed" count.'}
               </span>
             </button>
 
@@ -65,7 +68,9 @@ export default function AlertResolutionModal({ isOpen, onClose, onConfirm }: Ale
             >
               <span className="font-semibold mb-1">Forgive</span>
               <span className="text-xs text-center opacity-80">
-                Mark as resolved and remove &quot;Missed&quot; count.
+                {alertType === 'missed_attendance'
+                  ? 'Record attendance as late'
+                  : 'Mark as resolved and remove "Missed" count.'}
               </span>
             </button>
           </div>

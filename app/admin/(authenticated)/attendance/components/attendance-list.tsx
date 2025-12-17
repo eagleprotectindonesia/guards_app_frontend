@@ -32,11 +32,11 @@ function hasValidLocation(metadata: unknown): metadata is AttendanceMetadata {
 
 export type AttendanceWithRelations = Omit<Attendance, 'metadata'> & {
   shift: Shift & {
-    guard: Guard | null;
     site: Site;
     shiftType: ShiftType;
   };
   metadata: AttendanceMetadata;
+  guard: Guard | null;
 };
 
 type AttendanceListProps = {
@@ -139,9 +139,9 @@ export default function AttendanceList({
                     <td className="py-4 px-6 text-sm font-medium text-gray-900">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
-                          {attendance.shift.guard?.name.substring(0, 2).toUpperCase() || '??'}
+                          {attendance.guard?.name.substring(0, 2).toUpperCase() || '??'}
                         </div>
-                        {attendance.shift.guard?.name || 'Unknown Guard'}
+                        {attendance.guard?.name || 'Unknown Guard'}
                       </div>
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-600">

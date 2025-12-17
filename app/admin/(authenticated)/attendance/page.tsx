@@ -24,9 +24,7 @@ export default async function AttendancePage(props: AttendancePageProps) {
   const where: Prisma.AttendanceWhereInput = {};
 
   if (guardId) {
-    where.shift = {
-      guardId: guardId,
-    };
+    where.guardId = guardId;
   }
 
   if (from || to) {
@@ -48,11 +46,11 @@ export default async function AttendancePage(props: AttendancePageProps) {
       include: {
         shift: {
           include: {
-            guard: true,
             site: true,
             shiftType: true,
           },
         },
+        guard: true, // Include guard directly using the new field
       },
     }),
     prisma.attendance.count({ where }),
@@ -61,7 +59,7 @@ export default async function AttendancePage(props: AttendancePageProps) {
     }),
   ]);
 
-  const serializedAttendances = serialize(attendances) as Serialized<AttendanceWithRelations>[];
+  const serializedAttendances = serialize(attendances) as unknown as Serialized<AttendanceWithRelations>[];
   const serializedGuards = serialize(guards);
 
   const initialFilters = {

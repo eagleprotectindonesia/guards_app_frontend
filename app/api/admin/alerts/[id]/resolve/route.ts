@@ -92,6 +92,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             const newAttendance = await tx.attendance.create({
               data: {
                 shiftId: alert.shiftId,
+                guardId: alert.shift.guardId,
                 recordedAt: new Date(),
                 status: 'late',
                 metadata: { note: 'Auto-created via alert forgiveness' },
@@ -154,6 +155,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             await tx.attendance.create({
               data: {
                 shiftId: alert.shiftId,
+                guardId: alert.shift.guardId,
                 recordedAt: new Date(),
                 status: 'absent',
                 metadata: { note: 'Auto-created via alert resolution (absent)' },

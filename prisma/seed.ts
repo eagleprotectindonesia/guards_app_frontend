@@ -11,6 +11,9 @@ async function main() {
     data: {
       name: 'Headquarters',
       clientName: 'Headquarters Owner',
+      address: 'Jl. Umalas 1 Gg. XXII, Kerobokan Kelod, Kec. Kuta Utara, Kabupaten Badung, Bali, Indonesia',
+      latitude: -8.6695866,
+      longitude: 115.1538065,
     },
   });
   console.log('Created Site 1:', site1.id);
@@ -19,20 +22,26 @@ async function main() {
     data: {
       name: 'Downtown Branch',
       clientName: 'Downtown Branch Owner',
+      address: 'Pemogan, Denpasar Selatan, Denpasar City, Bali, Indonesia',
+      latitude: -8.717255399999999,
+      longitude: 115.1948445,
     },
   });
   console.log('Created Site 2:', site2.id);
 
   const site3 = await prisma.site.create({
     data: {
-      name: 'Warehouse',
+      name: 'Lilu Rental',
       clientName: 'Warehouse Manager',
+      address: 'Jl. Mahendradatta Utara No.758, Tegal Kertha, Kec. Denpasar Bar., Kota Denpasar, Bali 80361, Indonesia',
+      latitude: -8.654809799999999,
+      longitude: 115.1927169,
     },
   });
   console.log('Created Site 3:', site3.id);
 
   // 2. Create Guards
-  const guardPassword = 'password123'; // Default password for the seeded guards
+  const guardPassword = '123456'; // Default password for the seeded guards
   const hashedGuardPassword = await bcrypt.hash(guardPassword, 10); // Hash the password
 
   const guard1 = await prisma.guard.create({

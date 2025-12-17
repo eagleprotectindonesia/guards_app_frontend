@@ -159,6 +159,7 @@ export default function AlertFeed({
         isOpen={!!selectedAlertId}
         onClose={() => setSelectedAlertId(null)}
         onConfirm={handleConfirmResolution}
+        alertType={alerts.find(a => a.id === selectedAlertId)?.reason}
       />
     </>
   );

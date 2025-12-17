@@ -91,6 +91,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const attendance = await tx.attendance.create({
         data: {
           shiftId: shift.id,
+          guardId: shift.guardId, // Include guardId for direct filtering
           recordedAt: new Date(),
           status: 'present', // Assuming 'present' for initial attendance record
           metadata: metadata, // Store location data in metadata

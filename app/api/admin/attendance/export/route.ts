@@ -12,9 +12,7 @@ export async function GET(request: NextRequest) {
   const where: Prisma.AttendanceWhereInput = {};
 
   if (guardId) {
-    where.shift = {
-      guardId: guardId,
-    };
+    where.guardId = guardId;
   }
 
   if (startDateStr || endDateStr) {
@@ -52,6 +50,7 @@ export async function GET(request: NextRequest) {
                   site: true,
                 },
               },
+              guard: true, // Include guard directly using the new field
             },
             ...(cursor && { skip: 1, cursor: { id: cursor } }),
           };
@@ -62,6 +61,7 @@ export async function GET(request: NextRequest) {
                 guard: Guard | null;
                 site: Site;
               };
+              guard: Guard | null; // Include guard directly
             }
           > = await prisma.attendance.findMany(queryOptions);
 
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
             const metadata = (att.metadata as { location: { lat?: number; lng?: number } })?.location;
             const lat = metadata?.lat?.toFixed(6) || '';
             const lng = metadata?.lng?.toFixed(6) || '';
-            const guardName = att.shift.guard?.name || 'Unknown';
+            const guardName = att.guard?.name || 'Unknown';
             const siteName = att.shift.site.name;
             const shiftDate = new Date(att.shift.date).toLocaleDateString();
             const recordDate = new Date(att.recordedAt).toLocaleDateString();

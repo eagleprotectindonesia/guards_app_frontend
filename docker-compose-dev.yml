@@ -4,16 +4,14 @@ services:
       context: .
       args:
         - DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
-    image: ep_guard_app:latest
     container_name: ep_guard_app
     restart: always
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/ep_guard?schema=public
+      - REDIS_URL=redis://redis:6379
       - NEXT_TELEMETRY_DISABLED=1
-      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       db:
         condition: service_healthy
@@ -26,13 +24,11 @@ services:
       context: .
       args:
         - DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
-    image: ep_guard_app:latest
     container_name: ep_guard_worker
     restart: always
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - NEXT_TELEMETRY_DISABLED=1
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/ep_guard?schema=public
+      - REDIS_URL=redis://redis:6379
     depends_on:
       db:
         condition: service_healthy
@@ -45,13 +41,15 @@ services:
     container_name: ep_guard_db
     restart: always
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ep_guard
+    ports:
+      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -60,9 +58,10 @@ services:
     image: redis:8.0-alpine
     container_name: ep_guard_redis
     restart: always
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
-    # No ports exposed to host for security
 
 volumes:
   db_data:

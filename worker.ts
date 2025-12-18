@@ -142,32 +142,55 @@ class SchedulingWorker {
       // --- CLEAR ATTENTION IF CHECKED IN ---
       if (typeof shift.lastAttentionIndexSent === 'number') {
         const warningIndex = shift.lastAttentionIndexSent;
-        const warningSlotStart = startMs + warningIndex * intervalMs;
 
-        // If we have a heartbeat AFTER the start of the warned slot
-        if (shift.lastHeartbeatAt && shift.lastHeartbeatAt.getTime() >= warningSlotStart) {
-          await this.clearAttentionEvent(shift, warningIndex);
-          shift.lastAttentionIndexSent = undefined;
-          this.shiftStates.set(shift.id, { lastAttentionIndexSent: undefined });
+        if (warningIndex === -1) {
+          // Attendance attention clearing
+          if (shift.attendance) {
+            await this.clearAttentionEvent(shift, warningIndex);
+            shift.lastAttentionIndexSent = undefined;
+            this.shiftStates.set(shift.id, { lastAttentionIndexSent: undefined });
+          }
+        } else {
+          const warningSlotStart = startMs + warningIndex * intervalMs;
+
+          // If we have a heartbeat AFTER the start of the warned slot
+          if (shift.lastHeartbeatAt && shift.lastHeartbeatAt.getTime() >= warningSlotStart) {
+            await this.clearAttentionEvent(shift, warningIndex);
+            shift.lastAttentionIndexSent = undefined;
+            this.shiftStates.set(shift.id, { lastAttentionIndexSent: undefined });
+          }
         }
       }
 
       // --- ATTENDANCE ALERT LOGIC ---
       const attendanceGraceMs = ATTENDANCE_GRACE_PERIOD_MINS * 60000;
-      if (!shift.attendance && nowMs > startMs + attendanceGraceMs) {
-        const existingAttendanceAlert = await prisma.alert.findUnique({
-          where: {
-            shiftId_reason_windowStart: {
-              shiftId: shift.id,
-              reason: 'missed_attendance',
-              windowStart: shift.startsAt,
-            },
-          },
-        });
+      const attendanceDeadline = startMs + attendanceGraceMs;
 
-        if (!existingAttendanceAlert) {
-          console.log(`Detected missed attendance for shift ${shift.id} (Guard: ${shift.guard?.name})`);
-          await this.createAlert(shift, 'missed_attendance', shift.startsAt);
+      if (!shift.attendance) {
+        // 1. Attention (Warning)
+        const timeUntilDeadline = attendanceDeadline - nowMs;
+        if (timeUntilDeadline <= 60000 && timeUntilDeadline > 0) {
+          if (shift.lastAttentionIndexSent !== -1) {
+            await this.sendAttentionEvent(shift, -1, shift.startsAt, now, 'missed_attendance');
+          }
+        }
+
+        // 2. Alert (Missed)
+        if (nowMs > attendanceDeadline) {
+          const existingAttendanceAlert = await prisma.alert.findUnique({
+            where: {
+              shiftId_reason_windowStart: {
+                shiftId: shift.id,
+                reason: 'missed_attendance',
+                windowStart: shift.startsAt,
+              },
+            },
+          });
+
+          if (!existingAttendanceAlert) {
+            console.log(`Detected missed attendance for shift ${shift.id} (Guard: ${shift.guard?.name})`);
+            await this.createAlert(shift, 'missed_attendance', shift.startsAt);
+          }
         }
       }
 
@@ -283,12 +306,18 @@ class SchedulingWorker {
     await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
   }
 
-  private async sendAttentionEvent(shift: CachedShift, attentionIndex: number, dueTime: Date, now: Date) {
+  private async sendAttentionEvent(
+    shift: CachedShift,
+    attentionIndex: number,
+    dueTime: Date,
+    now: Date,
+    reason: 'missed_checkin' | 'missed_attendance' = 'missed_checkin'
+  ) {
     const fakeAlert = {
       id: `transient-${shift.id}-${attentionIndex}`,
       shiftId: shift.id,
       siteId: shift.siteId,
-      reason: 'missed_checkin',
+      reason,
       severity: 'warning',
       windowStart: dueTime,
       createdAt: now,

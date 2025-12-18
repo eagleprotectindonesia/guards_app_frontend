@@ -21,42 +21,49 @@ model Admin {
   updatedAt          DateTime  @updatedAt
   acknowledgedAlerts Alert[]   @relation("AcknowledgedBy")
   resolvedAlerts     Alert[]   @relation("ResolvedBy")
+  updatedGuards      Guard[]   @relation("GuardLastUpdatedBy")
+  updatedSites       Site[]    @relation("SiteLastUpdatedBy")
 
   @@map("admins")
 }
 
 model Guard {
-  id             String       @id @default(uuid())
-  name           String
-  phone          String       @unique
-  hashedPassword String       @map("hashed_password") // Added password field
-  tokenVersion   Int          @default(0) @map("token_version")
-  guardCode      String?      @map("guard_code") @db.VarChar(10)
-  status         Boolean?     @default(true)
-  joinDate       DateTime?    @map("join_date")
-  leftDate       DateTime?    @map("left_date")
-  note           String?      @db.Text
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  checkins       Checkin[]
-  shifts         Shift[]
-  attendances    Attendance[]
+  id              String       @id @default(uuid())
+  name            String
+  phone           String       @unique
+  employeeId      String       @unique @map("employee_id")
+  hashedPassword  String       @map("hashed_password") // Added password field
+  tokenVersion    Int          @default(0) @map("token_version")
+  guardCode       String?      @map("guard_code") @db.VarChar(10)
+  status          Boolean?     @default(true)
+  joinDate        DateTime?    @map("join_date") @db.Date
+  leftDate        DateTime?    @map("left_date") @db.Date
+  note            String?      @db.Text
+  lastUpdatedById String?      @map("last_updated_by_id")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  checkins        Checkin[]
+  shifts          Shift[]
+  attendances     Attendance[]
+  lastUpdatedBy   Admin?       @relation("GuardLastUpdatedBy", fields: [lastUpdatedById], references: [id])
 
   @@index([status])
   @@map("guards")
 }
 
 model Site {
-  id         String   @id @default(uuid())
-  name       String
-  clientName String?  @map("client_name")
-  address    String?
-  latitude   Float?
-  longitude  Float?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  alerts     Alert[]
-  shifts     Shift[]
+  id              String   @id @default(uuid())
+  name            String
+  clientName      String?  @map("client_name")
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  lastUpdatedById String?  @map("last_updated_by_id")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  alerts          Alert[]
+  shifts          Shift[]
+  lastUpdatedBy   Admin?   @relation("SiteLastUpdatedBy", fields: [lastUpdatedById], references: [id])
 
   @@map("sites")
 }

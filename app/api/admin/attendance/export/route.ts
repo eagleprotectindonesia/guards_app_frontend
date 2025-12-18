@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       const encoder = new TextEncoder();
 
       // Write Header
-      const headers = ['Guard', 'Site', 'Shift Date', 'Record Date', 'Record Time', 'Status', 'Latitude', 'Longitude'];
+      const headers = ['Guard', 'Employee ID', 'Site', 'Shift Date', 'Record Date', 'Record Time', 'Status', 'Latitude', 'Longitude'];
       controller.enqueue(encoder.encode(headers.join(',') + '\n'));
 
       let cursor: string | undefined = undefined;
@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
             const lat = metadata?.lat?.toFixed(6) || '';
             const lng = metadata?.lng?.toFixed(6) || '';
             const guardName = att.guard?.name || 'Unknown';
+            const employeeId = att.guard?.employeeId || 'N/A';
             const siteName = att.shift.site.name;
             const shiftDate = new Date(att.shift.date).toLocaleDateString();
             const recordDate = new Date(att.recordedAt).toLocaleDateString();
@@ -86,6 +87,7 @@ export async function GET(request: NextRequest) {
             chunk +=
               [
                 escape(guardName),
+                escape(employeeId),
                 escape(siteName),
                 escape(shiftDate),
                 escape(recordDate),

@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { createSiteSchema } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
+import { getAdminIdFromToken } from '@/lib/admin-auth';
 
 export type ActionState = {
   message?: string;
@@ -17,6 +18,7 @@ export type ActionState = {
 };
 
 export async function createSite(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const adminId = await getAdminIdFromToken();
   const validatedFields = createSiteSchema.safeParse({
     name: formData.get('name'),
     clientName: formData.get('clientName'),
@@ -37,6 +39,7 @@ export async function createSite(prevState: ActionState, formData: FormData): Pr
     await prisma.site.create({
       data: {
         ...validatedFields.data,
+        lastUpdatedById: adminId,
       },
     });
   } catch (error) {
@@ -52,6 +55,7 @@ export async function createSite(prevState: ActionState, formData: FormData): Pr
 }
 
 export async function updateSite(id: string, prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const adminId = await getAdminIdFromToken();
   const validatedFields = createSiteSchema.safeParse({
     name: formData.get('name'),
     clientName: formData.get('clientName'),
@@ -71,7 +75,10 @@ export async function updateSite(id: string, prevState: ActionState, formData: F
   try {
     await prisma.site.update({
       where: { id },
-      data: validatedFields.data,
+      data: {
+        ...validatedFields.data,
+        lastUpdatedById: adminId,
+      },
     });
   } catch (error) {
     console.error('Database Error:', error);

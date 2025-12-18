@@ -30,6 +30,13 @@ export default async function SitesPage(props: SitesPageProps) {
       orderBy: { name: 'asc' },
       skip,
       take: perPage,
+      include: {
+        lastUpdatedBy: {
+          select: {
+            name: true,
+          },
+        },
+      },
     }),
     prisma.site.count({ where }),
   ]);

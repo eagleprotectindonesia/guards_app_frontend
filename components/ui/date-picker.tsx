@@ -15,7 +15,7 @@ import {
 
 interface DatePickerProps {
   date?: Date;
-  setDate: (date: Date | undefined) => void;
+  setDate: (date?: Date) => void;
   placeholder?: string;
   className?: string;
   minDate?: Date;

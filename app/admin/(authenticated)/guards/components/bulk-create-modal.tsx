@@ -53,7 +53,7 @@ export default function BulkCreateModal({ isOpen, onClose }: BulkCreateModalProp
 
   const handleDownloadExample = () => {
     // Create CSV content with headers only
-    const csvContent = 'Name,Phone,Guard Code,Note,Join Date (YYYY-MM-DD),Password\n';
+    const csvContent = 'Name,Phone,Employee ID,Guard Code,Note,Join Date (YYYY-MM-DD),Password\n';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -82,7 +82,7 @@ export default function BulkCreateModal({ isOpen, onClose }: BulkCreateModalProp
             </button>
           </div>
           <code className="text-xs bg-gray-100 p-2 rounded block">
-            Name, Phone, Guard Code, Note, Join Date (YYYY-MM-DD), Password
+            Name, Phone, Employee ID, Guard Code, Note, Join Date (YYYY-MM-DD), Password
           </code>
           <p className="text-xs text-gray-400 mt-1">
             Note: Each guard must have a unique password provided in the CSV file.

@@ -85,10 +85,6 @@ export function calculateCheckInWindow(
   const isLastSlot = currentSlotStartMs === lastScheduledSlotStartMs;
   const isLastSlotStart = nowMs > lastScheduledSlotStartMs - graceMs;
 
-  console.log('isLastSlotStart',isLastSlotStart);
-  
-
-
   // Determine if the next slot would be the last scheduled check-in slot for the shift.
   const nextSlotStartCalculated = currentSlotStartMs + intervalMs;
   const isNextSlotLast = nextSlotStartCalculated === lastScheduledSlotStartMs;
@@ -145,10 +141,8 @@ export function calculateCheckInWindow(
       nextSlotStart: new Date(nextSlotStartMs),
       remainingTimeMs: effectiveCheckinWindowEndMs - nowMs,
       isLastSlot: isLastSlotStart,
-
     };
     // } else if (nowMs < effectiveCheckinWindowStartMs) {
-    //   console.log('early ges');
 
     //   return {
     //     status: 'early',

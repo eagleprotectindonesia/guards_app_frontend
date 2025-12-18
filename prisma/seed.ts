@@ -46,6 +46,7 @@ async function main() {
     data: {
       name: 'Jackie Chan',
       phone: '+15551234567', // Ensure unique phone number
+      employeeId: 'EMP001',
       hashedPassword: hashedGuardPassword,
       guardCode: '00001',
     },
@@ -56,6 +57,7 @@ async function main() {
     data: {
       name: 'Bruce Lee',
       phone: '+15551234568', // Ensure unique phone number
+      employeeId: 'EMP002',
       hashedPassword: hashedGuardPassword,
       guardCode: '00002',
     },
@@ -66,6 +68,7 @@ async function main() {
     data: {
       name: 'Chuck Norris',
       phone: '+15551234569', // Ensure unique phone number
+      employeeId: 'EMP003',
       hashedPassword: hashedGuardPassword,
       guardCode: '00003',
     },

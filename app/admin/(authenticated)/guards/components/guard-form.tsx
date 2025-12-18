@@ -5,7 +5,7 @@ import { createGuard, updateGuard, ActionState } from '../actions';
 import { useActionState, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Guard } from '@prisma/client';
-import DatePicker from 'react-datepicker';
+import { DatePicker } from '@/components/ui/date-picker';
 import { useRouter } from 'next/navigation';
 import { PasswordInput } from '@/components/ui/password-input';
 import PhoneInput from '@/components/ui/phone-input';
@@ -22,8 +22,8 @@ export default function GuardForm({ guard }: Props) {
     { success: false }
   );
 
-  const [joinDate, setJoinDate] = useState<Date | null>(guard?.joinDate ? new Date(guard.joinDate) : null);
-  const [leftDate, setLeftDate] = useState<Date | null>(guard?.leftDate ? new Date(guard.leftDate) : null);
+  const [joinDate, setJoinDate] = useState<Date | undefined>(guard?.joinDate ? new Date(guard.joinDate) : undefined);
+  const [leftDate, setLeftDate] = useState<Date | undefined>(guard?.leftDate ? new Date(guard.leftDate) : undefined);
 
   useEffect(() => {
     if (state.success) {
@@ -67,6 +67,29 @@ export default function GuardForm({ guard }: Props) {
               placeholder="e.g. +62550123456"
             />
             {state.errors?.phone && <p className="text-red-500 text-xs mt-1">{state.errors.phone[0]}</p>}
+          </div>
+
+          {/* Employee ID Field */}
+          <div>
+            <label htmlFor="employeeId" className="block font-medium text-gray-700 mb-1">
+              Employee ID
+            </label>
+            <input
+              type="text"
+              name="employeeId"
+              id="employeeId"
+              defaultValue={guard?.employeeId || ''}
+              required
+              maxLength={6}
+              minLength={6}
+              pattern="[a-zA-Z0-9]{6}"
+              title="Employee ID must be exactly 6 alphanumeric characters"
+              className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+              placeholder="e.g. EMP001"
+            />
+            {state.errors?.employeeId && (
+              <p className="text-red-500 text-xs mt-1">{state.errors.employeeId[0]}</p>
+            )}
           </div>
 
           {/* Guard Code Field */}
@@ -128,15 +151,12 @@ export default function GuardForm({ guard }: Props) {
               required={!guard} // Only required when creating a new guard
             />
             <DatePicker
-              selected={joinDate}
-              onChange={date => setJoinDate(date)}
-              showTimeSelect
-              dateFormat="MM/dd/yyyy h:mm aa"
-              placeholderText="Select date and time"
+              date={joinDate || undefined}
+              setDate={setJoinDate}
+              placeholder="Select date"
               className={`w-full h-10 px-3 rounded-lg border ${
                 state.errors?.joinDate ? 'border-red-500' : 'border-gray-200'
               } focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all`}
-              wrapperClassName="w-full"
             />
             {state.errors?.joinDate && <p className="text-red-500 text-xs mt-1">{state.errors.joinDate[0]}</p>}
           </div>
@@ -148,13 +168,10 @@ export default function GuardForm({ guard }: Props) {
             </label>
             <input type="hidden" name="leftDate" value={leftDate?.toISOString() || ''} />
             <DatePicker
-              selected={leftDate}
-              onChange={date => setLeftDate(date)}
-              showTimeSelect
-              dateFormat="MM/dd/yyyy h:mm aa"
-              placeholderText="Select date and time"
+              date={leftDate || undefined}
+              setDate={setLeftDate}
+              placeholder="Select date"
               className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
-              wrapperClassName="w-full"
             />
           </div>
 

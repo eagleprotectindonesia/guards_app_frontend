@@ -18,12 +18,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import SortableHeader from '@/components/sortable-header';
 import { format } from 'date-fns';
 
+type GuardWithUpdater = Guard & {
+  lastUpdatedBy?: { name: string } | null;
+};
+
 type GuardListProps = {
-  guards: Serialized<Guard>[];
+  guards: Serialized<GuardWithUpdater>[];
   page: number;
   perPage: number;
   totalCount: number;
-  sortBy?: 'name' | 'guardCode' | 'joinDate';
+  sortBy?: 'name' | 'employeeId' | 'guardCode' | 'joinDate';
   sortOrder?: 'asc' | 'desc';
   startDate?: string;
   endDate?: string;
@@ -109,13 +113,14 @@ export default function GuardList({
     try {
       const guards = await getAllGuardsForExport();
 
-      const headers = ['Name', 'Phone', 'Guard Code', 'Status', 'Joined Date', 'Left Date', 'Note'];
+      const headers = ['Name', 'Phone', 'Employee ID', 'Guard Code', 'Status', 'Joined Date', 'Left Date', 'Note'];
       const csvContent = [
         headers.join(','),
         ...guards.map(guard => {
           return [
             `"${guard.name}"`, 
             `"${guard.phone}"`, 
+            `"${guard.employeeId}"`,
             `"${guard.guardCode || ''}"`, 
             guard.status ? 'Active' : 'Inactive',
             `"${guard.joinDate ? new Date(guard.joinDate).toLocaleDateString() : ''}"`, 
@@ -214,6 +219,13 @@ export default function GuardList({
                 />
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</th>
                 <SortableHeader
+                  label="Employee ID"
+                  field="employeeId"
+                  currentSortBy={sortBy}
+                  currentSortOrder={sortOrder}
+                  onSort={handleSort}
+                />
+                <SortableHeader
                   label="Guard Code"
                   field="guardCode"
                   currentSortBy={sortBy}
@@ -229,6 +241,7 @@ export default function GuardList({
                   onSort={handleSort}
                 />
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Left Date</th>
+                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Last Updated By</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                   Actions
                 </th>
@@ -237,7 +250,7 @@ export default function GuardList({
             <tbody className="divide-y divide-gray-100">
               {guards.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-gray-500">
+                  <td colSpan={9} className="py-8 text-center text-gray-500">
                     No guards found. Add one to get started.
                   </td>
                 </tr>
@@ -254,6 +267,7 @@ export default function GuardList({
                       </div>
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-600 font-mono">{guard.phone}</td>
+                    <td className="py-4 px-6 text-sm text-gray-600">{guard.employeeId}</td>
                     <td className="py-4 px-6 text-sm text-gray-600">{guard.guardCode || '-'}</td>
                     <td className="py-4 px-6 text-sm">
                       {guard.status !== false ? (
@@ -275,6 +289,9 @@ export default function GuardList({
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500">
                       {guard.leftDate ? new Date(guard.leftDate).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-500">
+                      {guard.lastUpdatedBy?.name || '-'}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">

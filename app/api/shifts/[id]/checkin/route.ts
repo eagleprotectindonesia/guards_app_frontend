@@ -102,10 +102,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const status: 'on_time' | 'late' = 'on_time'; // If window is 'open', it's on time.
     const isLastSlot = windowResult.isLastSlot;
-    console.log(windowResult);
     
-    console.log(isLastSlot);
-
     // 4. Transaction: Insert Checkin, Update Shift, Resolve Alerts
     const result = await prisma.$transaction(async tx => {
       const checkin = await tx.checkin.create({

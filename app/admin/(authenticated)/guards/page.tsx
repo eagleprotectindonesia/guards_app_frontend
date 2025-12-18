@@ -3,7 +3,7 @@ import { serialize, getPaginationParams } from '@/lib/utils';
 import GuardList from './components/guard-list';
 import { Suspense } from 'react';
 import { Prisma } from '@prisma/client';
-import { parseISO, isValid, startOfDay, endOfDay } from 'date-fns';
+import { parseISO, isValid } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +27,8 @@ export default async function GuardsPage(props: GuardsPageProps) {
       : 'desc');
 
   // Validate sortBy field to prevent SQL injection
-  const validSortFields = ['name', 'guardCode', 'joinDate'];
-  const sortField = validSortFields.includes(sortBy) ? (sortBy as 'name' | 'guardCode' | 'joinDate') : 'joinDate';
+  const validSortFields = ['name', 'employeeId', 'guardCode', 'joinDate'];
+  const sortField = validSortFields.includes(sortBy) ? (sortBy as 'name' | 'employeeId' | 'guardCode' | 'joinDate') : 'joinDate';
 
   const where: Prisma.GuardWhereInput = {};
 
@@ -36,6 +36,7 @@ export default async function GuardsPage(props: GuardsPageProps) {
     where.OR = [
       { name: { contains: query, mode: 'insensitive' } },
       { phone: { contains: query, mode: 'insensitive' } },
+      { employeeId: { contains: query, mode: 'insensitive' } },
       { guardCode: { contains: query, mode: 'insensitive' } },
     ];
   }
@@ -46,13 +47,13 @@ export default async function GuardsPage(props: GuardsPageProps) {
     if (startDateParam) {
       const startDate = parseISO(startDateParam);
       if (isValid(startDate)) {
-        where.joinDate.gte = startOfDay(startDate);
+        where.joinDate.gte = startDate;
       }
     }
     if (endDateParam) {
       const endDate = parseISO(endDateParam);
       if (isValid(endDate)) {
-        where.joinDate.lte = endOfDay(endDate);
+        where.joinDate.lte = endDate;
       }
     }
   }
@@ -63,6 +64,13 @@ export default async function GuardsPage(props: GuardsPageProps) {
       orderBy: { [sortField]: sortOrder as 'asc' | 'desc' },
       skip,
       take: perPage,
+      include: {
+        lastUpdatedBy: {
+          select: {
+            name: true,
+          },
+        },
+      },
     }),
     prisma.guard.count({ where }),
   ]);

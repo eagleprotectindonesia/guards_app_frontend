@@ -55,10 +55,14 @@ export const createGuardSchema = z.object({
         message: 'Phone number must be between 6 and 17 characters',
       }
     ),
+  employeeId: z
+    .string()
+    .length(6, 'Employee ID must be exactly 6 characters')
+    .regex(/^[a-zA-Z0-9]*$/, 'Employee ID must be alphanumeric only'),
   guardCode: z.string().min(1).max(12).regex(/^[a-zA-Z0-9]*$/, 'Guard code must be alphanumeric only').optional(),
   status: z.boolean().optional(),
-  joinDate: z.iso.datetime(),
-  leftDate: z.iso.datetime().optional(),
+  joinDate: z.coerce.date(),
+  leftDate: z.coerce.date().optional(),
   note: z.string().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters long'), // Required for creation
 });
@@ -90,10 +94,14 @@ export const updateGuardSchema = z.object({
         message: 'Phone number must be between 6 and 17 characters',
       }
     ),
+  employeeId: z
+    .string()
+    .length(6, 'Employee ID must be exactly 6 characters')
+    .regex(/^[a-zA-Z0-9]*$/, 'Employee ID must be alphanumeric only'),
   guardCode: z.string().max(12).regex(/^[a-zA-Z0-9]*$/, 'Guard code must be alphanumeric only').optional(),
   status: z.boolean().optional(),
-  joinDate: z.iso.datetime().optional(),
-  leftDate: z.iso.datetime().optional(),
+  joinDate: z.coerce.date().optional(),
+  leftDate: z.coerce.date().optional(),
   note: z.string().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters long').optional(), // Optional for updates
 });

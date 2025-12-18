@@ -36,6 +36,14 @@ export default function GuardDetail({ guard }: Props) {
             </div>
           </div>
 
+          {/* Employee ID Field */}
+          <div>
+            <label className="block font-medium text-gray-700 mb-1">Employee ID</label>
+            <div className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 flex items-center">
+              {guard.employeeId}
+            </div>
+          </div>
+
           {/* Guard Code Field */}
           <div>
             <label className="block font-medium text-gray-700 mb-1">Guard Code</label>

@@ -296,7 +296,6 @@ class SchedulingWorker {
 
       const payload = { type: 'alert_created', alert };
       await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
-      console.log(`[MOCK] Sending notification for alert ${newAlert.id}`);
     });
   }
 

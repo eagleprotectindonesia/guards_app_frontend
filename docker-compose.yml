@@ -4,7 +4,6 @@ services:
       context: .
       args:
         - DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
-        - BUILD_ID=${BUILD_ID:-dev}
     image: ep_guard_app:latest
     container_name: ep_guard_app
     restart: always
@@ -20,14 +19,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    command: /bin/sh -c "npx prisma migrate deploy && npm start"
+    command: npm start
 
   worker:
     build: 
       context: .
       args:
         - DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
-        - BUILD_ID=${BUILD_ID:-dev}
     image: ep_guard_app:latest
     container_name: ep_guard_worker
     restart: always

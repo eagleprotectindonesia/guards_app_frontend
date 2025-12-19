@@ -23,19 +23,20 @@ jobs:
             git fetch --all
             git reset --hard origin/main
 
-            echo "== Build new images =="
+            echo "== Inject Build ID =="
             export BUILD_ID=$(git rev-parse --short HEAD)
-            # Force legacy builder for compatibility with docker-compose 1.29.2
-            export DOCKER_BUILDKIT=0
-            export COMPOSE_DOCKER_CLI_BUILD=0
-            docker-compose build --build-arg BUILD_ID=$BUILD_ID
+            sed -i "s/{{BUILD_ID}}/$BUILD_ID/g" public/guard/sw.js
+
+            echo "== Build new images =="
+            docker-compose build
+
+            echo "== Run DB migrations =="
+            # Run migration in a temporary container (using new image) BEFORE restarting app
+            docker-compose run --rm app npx prisma migrate deploy
 
             echo "== Update containers =="
             # Recreates only changed containers with minimal downtime
             docker-compose up -d
-
-            echo "== Run DB migrations =="
-            docker-compose exec -T app npx prisma migrate deploy
 
             echo "== Status =="
             docker-compose ps

@@ -26,6 +26,12 @@ ENV DATABASE_URL=${DATABASE_URL}
 
 RUN npx prisma generate
 
+# Copy environment file
+COPY .env ./
+
+# Validate environment variables before building
+RUN npx tsx lib/env.ts
+
 # Build Next.js
 # Note: We keep the standard build (not standalone) to simplify sharing dependencies with the worker.
 RUN npm run build

@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { PasswordInput } from '@/components/ui/password-input';
 import PhoneInput from '@/components/ui/phone-input';
 import { E164Number } from 'libphonenumber-js';
+import { format } from 'date-fns';
 
 type Props = {
   guard?: Serialized<Guard>; // If provided, it's an edit form
@@ -147,7 +148,7 @@ export default function GuardForm({ guard }: Props) {
             <input
               type="hidden"
               name="joinDate"
-              value={joinDate?.toISOString() || ''}
+              value={joinDate ? format(joinDate, 'yyyy-MM-dd') : ''}
               required={!guard} // Only required when creating a new guard
             />
             <DatePicker
@@ -166,7 +167,7 @@ export default function GuardForm({ guard }: Props) {
             <label htmlFor="leftDate" className="block font-medium text-gray-700 mb-1">
               Left Date
             </label>
-            <input type="hidden" name="leftDate" value={leftDate?.toISOString() || ''} />
+            <input type="hidden" name="leftDate" value={leftDate ? format(leftDate, 'yyyy-MM-dd') : ''} />
             <DatePicker
               date={leftDate || undefined}
               setDate={setLeftDate}

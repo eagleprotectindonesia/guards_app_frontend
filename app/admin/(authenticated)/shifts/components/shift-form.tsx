@@ -9,6 +9,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import Select from '../../components/select';
 import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
 
 type Props = {
   shift?: Serialized<Shift>;
@@ -109,7 +110,7 @@ export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
             Date
           </label>
           {/* Hidden input for formatted date string YYYY-MM-DD */}
-          <input type="hidden" name="date" value={date ? date.toISOString().split('T')[0] : ''} />
+          <input type="hidden" name="date" value={date ? format(date, 'yyyy-MM-dd') : ''} />
           <DatePicker
             selected={date}
             onChange={d => setDate(d)}

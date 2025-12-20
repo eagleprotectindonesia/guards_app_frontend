@@ -5,6 +5,8 @@ import { Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AttendanceExportModal from './attendance-export-modal';
 import { format } from 'date-fns';
+import { Serialized } from '@/lib/utils';
+import { Guard } from '@prisma/client';
 
 type AttendanceExportProps = {
   initialFilters: {
@@ -12,17 +14,19 @@ type AttendanceExportProps = {
     endDate?: string;
     guardId?: string;
   };
+  guards: Serialized<Guard>[];
 };
 
-export default function AttendanceExport({ initialFilters }: AttendanceExportProps) {
+export default function AttendanceExport({ initialFilters, guards }: AttendanceExportProps) {
   const [isExportOpen, setIsExportOpen] = useState(false);
 
-  const performExport = async (startDate: Date, endDate: Date) => {
+  const performExport = async (startDate: Date, endDate: Date, selectedGuardId?: string) => {
     try {
       const params = new URLSearchParams();
       
-      if (initialFilters.guardId) {
-        params.set('guardId', initialFilters.guardId);
+      const guardIdToUse = selectedGuardId || initialFilters.guardId;
+      if (guardIdToUse) {
+        params.set('guardId', guardIdToUse);
       }
       
       params.set('startDate', format(startDate, 'yyyy-MM-dd'));
@@ -57,6 +61,7 @@ export default function AttendanceExport({ initialFilters }: AttendanceExportPro
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
         onExport={performExport}
+        guards={guards}
       />
     </>
   );

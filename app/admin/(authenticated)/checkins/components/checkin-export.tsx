@@ -5,6 +5,8 @@ import { Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CheckinExportModal from './checkin-export-modal';
 import { format } from 'date-fns';
+import { Serialized } from '@/lib/utils';
+import { Guard } from '@prisma/client';
 
 type CheckinExportProps = {
   initialFilters: {
@@ -12,17 +14,19 @@ type CheckinExportProps = {
     endDate?: string;
     guardId?: string;
   };
+  guards: Serialized<Guard>[];
 };
 
-export default function CheckinExport({ initialFilters }: CheckinExportProps) {
+export default function CheckinExport({ initialFilters, guards }: CheckinExportProps) {
   const [isExportOpen, setIsExportOpen] = useState(false);
 
-  const performExport = async (startDate: Date, endDate: Date) => {
+  const performExport = async (startDate: Date, endDate: Date, selectedGuardId?: string) => {
     try {
       const params = new URLSearchParams();
       
-      if (initialFilters.guardId) {
-        params.set('guardId', initialFilters.guardId);
+      const guardIdToUse = selectedGuardId || initialFilters.guardId;
+      if (guardIdToUse) {
+        params.set('guardId', guardIdToUse);
       }
       
       params.set('startDate', format(startDate, 'yyyy-MM-dd'));
@@ -57,6 +61,7 @@ export default function CheckinExport({ initialFilters }: CheckinExportProps) {
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
         onExport={performExport}
+        guards={guards}
       />
     </>
   );

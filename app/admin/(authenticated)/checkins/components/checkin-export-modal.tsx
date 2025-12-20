@@ -7,16 +7,20 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { differenceInDays, addDays } from 'date-fns';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Guard } from '@prisma/client';
+import { Serialized } from '@/lib/utils';
 
 type CheckinExportModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onExport: (startDate: Date, endDate: Date) => void;
+  onExport: (startDate: Date, endDate: Date, guardId?: string) => void;
+  guards: Serialized<Guard>[];
 };
 
-export default function CheckinExportModal({ isOpen, onClose, onExport }: CheckinExportModalProps) {
+export default function CheckinExportModal({ isOpen, onClose, onExport, guards }: CheckinExportModalProps) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [selectedGuardId, setSelectedGuardId] = useState<string>('');
 
   const handleExport = () => {
     if (!startDate || !endDate) {
@@ -35,7 +39,7 @@ export default function CheckinExportModal({ isOpen, onClose, onExport }: Checki
       return;
     }
 
-    onExport(startDate, endDate);
+    onExport(startDate, endDate, selectedGuardId || undefined);
     onClose();
   };
 
@@ -56,6 +60,24 @@ export default function CheckinExportModal({ isOpen, onClose, onExport }: Checki
         </p>
 
         <div className="space-y-4">
+          {/* Guard Selection */}
+          <div>
+            <Label htmlFor="guard">Guard (Optional)</Label>
+            <select
+              id="guard"
+              value={selectedGuardId}
+              onChange={e => setSelectedGuardId(e.target.value)}
+              className="w-full mt-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="">All Guards</option>
+              {guards.map(guard => (
+                <option key={guard.id} value={guard.id}>
+                  {guard.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Start Date */}
           <div>
             <Label htmlFor="export-start-date">Start Date</Label>

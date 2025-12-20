@@ -100,7 +100,7 @@ export default function AttendanceList({
           <p className="text-sm text-gray-500 mt-1">View guard attendance records and status.</p>
         </div>
         <div className="flex items-center gap-2">
-          <AttendanceExport initialFilters={initialFilters} />
+          <AttendanceExport initialFilters={initialFilters} guards={guards} />
           <button
             onClick={() => setIsFilterOpen(true)}
             className="inline-flex items-center justify-center h-10 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm"

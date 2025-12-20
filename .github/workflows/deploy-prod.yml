@@ -2,7 +2,8 @@ name: Deploy to Production (EC2)
 
 on:
   push:
-    branches: ["main"]
+    # 1. Update this to include any branch you want to deploy
+    branches: ["main", "dev-tian-backup"] 
 
 jobs:
   deploy:
@@ -14,29 +15,20 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          # 2. Pass the branch name as an environment variable to the script
+          envs: GITHUB_REF_NAME 
           script: |
             set -e
             cd ${{ secrets.APP_DIR }}
 
-            echo "== Pull latest code =="
+            echo "== Pull latest code from $GITHUB_REF_NAME =="
             export GIT_SSH_COMMAND="ssh -i ~/.ssh/github_actions_deploy -o StrictHostKeyChecking=accept-new"
             git fetch --all
-            git reset --hard origin/main
+            # 3. Use the variable here so it resets to the correct branch
+            git reset --hard origin/$GITHUB_REF_NAME
 
-            echo "== Inject Build ID =="
-            export BUILD_ID=$(git rev-parse --short HEAD)
-            sed -i "s/{{BUILD_ID}}/$BUILD_ID/g" public/guard/sw.js
-
-            echo "== Build new images =="
-            docker-compose build
+            echo "== Rebuild & restart containers =="
+            docker-compose up -d --build
 
             echo "== Run DB migrations =="
-            # Run migration in a temporary container (using new image) BEFORE restarting app
-            docker-compose run --rm app npx prisma migrate deploy
-
-            echo "== Update containers =="
-            # Recreates only changed containers with minimal downtime
-            docker-compose up -d
-
-            echo "== Status =="
-            docker-compose ps
+            docker-compose exec -T app npx prisma migrate deploy

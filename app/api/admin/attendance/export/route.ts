@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
             const lat = metadata?.lat?.toFixed(6) || '';
             const lng = metadata?.lng?.toFixed(6) || '';
             const guardName = att.guard?.name || 'Unknown';
-            const employeeId = att.guard?.employeeId || 'N/A';
+            const employeeId = att.guard?.id || 'N/A';
             const siteName = att.shift.site.name;
             const shiftDate = new Date(att.shift.date).toLocaleDateString();
             const recordDate = new Date(att.recordedAt).toLocaleDateString();

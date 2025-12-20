@@ -15,7 +15,7 @@ export type ActionState = {
   errors?: {
     name?: string[];
     phone?: string[];
-    employeeId?: string[];
+    id?: string[];
     password?: string[];
     confirmPassword?: string[];
     guardCode?: string[];
@@ -39,7 +39,7 @@ export async function createGuard(prevState: ActionState, formData: FormData): P
   const validatedFields = createGuardSchema.safeParse({
     name: formData.get('name'),
     phone: formData.get('phone'),
-    employeeId: formData.get('employeeId')?.toString() || undefined,
+    id: formData.get('id')?.toString() || undefined,
     guardCode: formData.get('guardCode')?.toString() || undefined,
     status: formData.get('status') === 'true' ? true : formData.get('status') === 'false' ? false : undefined,
     joinDate: formData.get('joinDate')?.toString() || undefined,
@@ -80,9 +80,10 @@ export async function createGuard(prevState: ActionState, formData: FormData): P
             success: false,
           };
         }
-        if (target?.includes('employee_id')) {
+        // Check for primary key violation (id) or explicit field check
+        if (target?.includes('id') || target?.includes('guards_pkey')) {
           return {
-            message: 'A guard with this employee ID already exists.',
+            message: 'A guard with this ID already exists.',
             success: false,
           };
         }
@@ -108,7 +109,6 @@ export async function updateGuard(id: string, prevState: ActionState, formData: 
   const validatedFields = updateGuardSchema.safeParse({
     name: formData.get('name'),
     phone: formData.get('phone'),
-    employeeId: formData.get('employeeId')?.toString() || undefined,
     guardCode: formData.get('guardCode')?.toString() || undefined,
     status: formData.get('status') === 'true' ? true : formData.get('status') === 'false' ? false : undefined,
     joinDate: formData.get('joinDate')?.toString() || undefined,
@@ -139,12 +139,6 @@ export async function updateGuard(id: string, prevState: ActionState, formData: 
         if (target?.includes('phone')) {
           return {
             message: 'A guard with this phone number already exists.',
-            success: false,
-          };
-        }
-        if (target?.includes('employee_id')) {
-          return {
-            message: 'A guard with this employee ID already exists.',
             success: false,
           };
         }
@@ -235,7 +229,7 @@ export async function bulkCreateGuards(
     Guard,
     | 'name'
     | 'phone'
-    | 'employeeId'
+    | 'id'
     | 'guardCode'
     | 'note'
     | 'joinDate'
@@ -244,7 +238,7 @@ export async function bulkCreateGuards(
     | 'lastUpdatedById'
   >[] = [];
   const phonesToCheck: string[] = [];
-  const employeeIdsToCheck: string[] = [];
+  const idsToCheck: string[] = [];
 
   // Skip header row
   const startRow = 1;
@@ -254,34 +248,34 @@ export async function bulkCreateGuards(
     // Simple CSV split, handling basic quotes stripping
     const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
 
-    // Expected: Name, Phone, Employee ID, Guard Code, Note, Join Date, Password
-    // At minimum, Name, Phone, Employee ID, Password, and Join Date are required.
+    // Expected: Name, Phone, ID (was Employee ID), Guard Code, Note, Join Date, Password
+    // At minimum, Name, Phone, ID, Password, and Join Date are required.
     if (cols.length < 4) {
       errors.push(
-        `Row ${i + 1}: Insufficient columns. Name, Phone, Employee ID, Password, and Join Date are required.`
+        `Row ${i + 1}: Insufficient columns. Name, Phone, Guard ID, Password, and Join Date are required.`
       );
       continue;
     }
 
-    const [name, phoneRaw, employeeId, guardCode, note, joinDateStr, password] = cols;
+    const [name, phoneRaw, id, guardCode, note, joinDateStr, password] = cols;
     let phone = phoneRaw;
 
     if (phone && !phone.startsWith('+')) {
       phone = '+' + phone;
     }
 
-    if (!name || !phone || !employeeId) {
-      errors.push(`Row ${i + 1}: Name, Phone, and Employee ID are required.`);
+    if (!name || !phone || !id) {
+      errors.push(`Row ${i + 1}: Name, Phone, and Guard ID are required.`);
       continue;
     }
 
-    // Validate employee ID length and alphanumeric
-    if (employeeId.length !== 6) {
-      errors.push(`Row ${i + 1}: Employee ID must be exactly 6 characters.`);
+    // Validate ID length and alphanumeric (using same rules as schema for consistency)
+    if (id.length !== 6) {
+      errors.push(`Row ${i + 1}: Guard ID must be exactly 6 characters.`);
       continue;
     }
-    if (!/^[a-zA-Z0-9]*$/.test(employeeId)) {
-      errors.push(`Row ${i + 1}: Employee ID must be alphanumeric only.`);
+    if (!/^[a-zA-Z0-9]*$/.test(id)) {
+      errors.push(`Row ${i + 1}: Guard ID must be alphanumeric only.`);
       continue;
     }
 
@@ -356,7 +350,7 @@ export async function bulkCreateGuards(
     const inputData = {
       name,
       phone,
-      employeeId,
+      id,
       guardCode: guardCodeValue,
       note: note || undefined,
       joinDate: joinDateISO,
@@ -380,13 +374,13 @@ export async function bulkCreateGuards(
       continue;
     }
 
-    if (employeeIdsToCheck.includes(employeeId)) {
-      errors.push(`Row ${i + 1}: Duplicate employee ID '${employeeId}' in file.`);
+    if (idsToCheck.includes(id)) {
+      errors.push(`Row ${i + 1}: Duplicate Guard ID '${id}' in file.`);
       continue;
     }
 
     phonesToCheck.push(phone);
-    employeeIdsToCheck.push(employeeId);
+    idsToCheck.push(id);
 
     // Hash the password for this specific guard
     const hashedPasswordForGuard = await hashPassword(validationResult.data.password);
@@ -394,7 +388,7 @@ export async function bulkCreateGuards(
     guardsToCreate.push({
       name: validationResult.data.name,
       phone: validationResult.data.phone,
-      employeeId: validationResult.data.employeeId,
+      id: validationResult.data.id,
       guardCode: validationResult.data.guardCode || null,
       note: validationResult.data.note || null,
       joinDate: validationResult.data.joinDate as unknown as Date,
@@ -413,12 +407,12 @@ export async function bulkCreateGuards(
   }
 
   try {
-    // Check for existing phones or employee IDs in DB
+    // Check for existing phones or IDs in DB
     const existingGuards = await prisma.guard.findMany({
       where: {
-        OR: [{ phone: { in: phonesToCheck } }, { employeeId: { in: employeeIdsToCheck } }],
+        OR: [{ phone: { in: phonesToCheck } }, { id: { in: idsToCheck } }],
       },
-      select: { phone: true, employeeId: true },
+      select: { phone: true, id: true },
     });
 
     if (existingGuards.length > 0) {
@@ -427,8 +421,8 @@ export async function bulkCreateGuards(
         if (phonesToCheck.includes(g.phone)) {
           existingErrors.push(`Phone '${g.phone}' is already registered.`);
         }
-        if (employeeIdsToCheck.includes(g.employeeId)) {
-          existingErrors.push(`Employee ID '${g.employeeId}' is already registered.`);
+        if (idsToCheck.includes(g.id)) {
+          existingErrors.push(`Guard ID '${g.id}' is already registered.`);
         }
       });
       return {

@@ -27,7 +27,7 @@ type GuardListProps = {
   page: number;
   perPage: number;
   totalCount: number;
-  sortBy?: 'name' | 'employeeId' | 'guardCode' | 'joinDate';
+  sortBy?: 'name' | 'id' | 'guardCode' | 'joinDate';
   sortOrder?: 'asc' | 'desc';
   startDate?: string;
   endDate?: string;
@@ -120,7 +120,7 @@ export default function GuardList({
           return [
             `"${guard.name}"`, 
             `"${guard.phone}"`, 
-            `"${guard.employeeId}"`,
+            `"${guard.id}"`,
             `"${guard.guardCode || ''}"`, 
             guard.status ? 'Active' : 'Inactive',
             `"${guard.joinDate ? new Date(guard.joinDate).toLocaleDateString() : ''}"`, 
@@ -212,7 +212,7 @@ export default function GuardList({
               <tr className="bg-gray-50 border-b border-gray-100">
                 <SortableHeader
                   label="Employee ID"
-                  field="employeeId"
+                  field="id"
                   currentSortBy={sortBy}
                   currentSortOrder={sortOrder}
                   onSort={handleSort}
@@ -261,7 +261,7 @@ export default function GuardList({
               ) : (
                 guards.map(guard => (
                   <tr key={guard.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="py-4 px-6 text-sm text-gray-600">{guard.employeeId}</td>
+                    <td className="py-4 px-6 text-sm text-gray-600">{guard.id}</td>
                     <td className="py-4 px-6 text-sm font-medium text-gray-900">
                       <div className="flex items-center gap-3">
                         {/* Avatar Placeholder */}

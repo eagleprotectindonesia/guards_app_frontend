@@ -40,7 +40,7 @@ export default function GuardDetail({ guard }: Props) {
           <div>
             <label className="block font-medium text-gray-700 mb-1">Employee ID</label>
             <div className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 flex items-center">
-              {guard.employeeId}
+              {guard.id}
             </div>
           </div>
 

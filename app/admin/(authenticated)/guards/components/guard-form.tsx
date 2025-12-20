@@ -72,24 +72,27 @@ export default function GuardForm({ guard }: Props) {
 
           {/* Employee ID Field */}
           <div>
-            <label htmlFor="employeeId" className="block font-medium text-gray-700 mb-1">
+            <label htmlFor="id" className="block font-medium text-gray-700 mb-1">
               Employee ID
             </label>
             <input
               type="text"
-              name="employeeId"
-              id="employeeId"
-              defaultValue={guard?.employeeId || ''}
+              name="id"
+              id="id"
+              defaultValue={guard?.id || ''}
               required
+              readOnly={!!guard}
               maxLength={6}
               minLength={6}
               pattern="[a-zA-Z0-9]{6}"
               title="Employee ID must be exactly 6 alphanumeric characters"
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+              className={`w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all ${
+                guard ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              }`}
               placeholder="e.g. EMP001"
             />
-            {state.errors?.employeeId && (
-              <p className="text-red-500 text-xs mt-1">{state.errors.employeeId[0]}</p>
+            {state.errors?.id && (
+              <p className="text-red-500 text-xs mt-1">{state.errors.id[0]}</p>
             )}
           </div>
 

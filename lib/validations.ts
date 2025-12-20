@@ -55,9 +55,9 @@ export const createGuardSchema = z.object({
         message: 'Phone number must be between 6 and 17 characters',
       }
     ),
-  employeeId: z
+  id: z
     .string()
-    .length(6, 'Employee ID must be exactly 6 characters')
+    .length(6, 'Employee ID (System ID) must be exactly 6 characters')
     .regex(/^[a-zA-Z0-9]*$/, 'Employee ID must be alphanumeric only'),
   guardCode: z.string().min(1).max(12).regex(/^[a-zA-Z0-9]*$/, 'Guard code must be alphanumeric only').optional(),
   status: z.boolean().optional(),
@@ -94,10 +94,6 @@ export const updateGuardSchema = z.object({
         message: 'Phone number must be between 6 and 17 characters',
       }
     ),
-  employeeId: z
-    .string()
-    .length(6, 'Employee ID must be exactly 6 characters')
-    .regex(/^[a-zA-Z0-9]*$/, 'Employee ID must be alphanumeric only'),
   guardCode: z.string().max(12).regex(/^[a-zA-Z0-9]*$/, 'Guard code must be alphanumeric only').optional(),
   status: z.boolean().optional(),
   joinDate: z.coerce.date().optional(),
@@ -127,7 +123,7 @@ export const createShiftTypeSchema = z.object({
 export const createShiftSchema = z.object({
   siteId: z.uuid(),
   shiftTypeId: z.uuid(),
-  guardId: z.uuid(),
+  guardId: z.string().min(1),
   date: z.iso.date(), // Expects "YYYY-MM-DD"
   requiredCheckinIntervalMins: z.number().int().min(5).default(60),
   graceMinutes: z.number().int().min(1).default(15),

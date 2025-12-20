@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const { employeeId, password } = guardLoginSchema.parse(body);
 
     const guard = await prisma.guard.findUnique({
-      where: { employeeId },
+      where: { id: employeeId },
     });
 
     if (!guard) {

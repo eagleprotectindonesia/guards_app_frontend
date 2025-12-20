@@ -29,10 +29,9 @@ model Admin {
 }
 
 model Guard {
-  id              String       @id @default(uuid())
+  id              String       @id
   name            String
   phone           String       @unique
-  employeeId      String       @unique @map("employee_id")
   hashedPassword  String       @map("hashed_password") // Added password field
   tokenVersion    Int          @default(0) @map("token_version")
   guardCode       String?      @map("guard_code") @db.VarChar(10)

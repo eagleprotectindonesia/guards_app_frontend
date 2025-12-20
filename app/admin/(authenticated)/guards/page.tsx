@@ -32,8 +32,8 @@ export default async function GuardsPage(props: GuardsPageProps) {
       : 'desc');
 
   // Validate sortBy field to prevent SQL injection
-  const validSortFields = ['name', 'employeeId', 'guardCode', 'joinDate'];
-  const sortField = validSortFields.includes(sortBy) ? (sortBy as 'name' | 'employeeId' | 'guardCode' | 'joinDate') : 'joinDate';
+  const validSortFields = ['name', 'id', 'guardCode', 'joinDate'];
+  const sortField = validSortFields.includes(sortBy) ? (sortBy as 'name' | 'id' | 'guardCode' | 'joinDate') : 'joinDate';
 
   const where: Prisma.GuardWhereInput = {};
 
@@ -41,7 +41,7 @@ export default async function GuardsPage(props: GuardsPageProps) {
     where.OR = [
       { name: { contains: query, mode: 'insensitive' } },
       { phone: { contains: query, mode: 'insensitive' } },
-      { employeeId: { contains: query, mode: 'insensitive' } },
+      { id: { contains: query, mode: 'insensitive' } },
       { guardCode: { contains: query, mode: 'insensitive' } },
     ];
   }

@@ -2,45 +2,46 @@ services:
   app:
     build: 
       context: .
+      target: app-runner
       args:
-        - DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
+        - NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
     image: ep_guard_app:latest
     container_name: ep_guard_app
     restart: always
+    env_file: .env
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
       - NEXT_TELEMETRY_DISABLED=1
-      - JWT_SECRET=${JWT_SECRET}
       - TZ=Asia/Makassar
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
-    command: npm start
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   worker:
     build: 
       context: .
+      target: worker-runner
       args:
-        - DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
-    image: ep_guard_app:latest
+        - NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+    image: ep_guard_worker:latest
     container_name: ep_guard_worker
     restart: always
+    env_file: .env
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - NEXT_TELEMETRY_DISABLED=1
       - TZ=Asia/Makassar
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
-    command: npx tsx worker.ts
+        condition: service_healthy
 
   db:
     image: postgres:15-alpine
@@ -67,7 +68,11 @@ services:
       - TZ=Asia/Makassar
     volumes:
       - redis_data:/data
-    # No ports exposed to host for security
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   db_data:

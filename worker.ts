@@ -38,10 +38,38 @@ class SchedulingWorker {
   private shiftStates = new Map<string, { lastAttentionIndexSent?: number }>();
   private lastFullSync = 0;
   private lastUpcomingSync = 0;
+  private isShuttingDown = false;
 
   async start() {
     console.log('Worker started with 5s tick and 30s full sync...');
-    setInterval(() => this.tick(), TICK_INTERVAL_MS);
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => this.shutdown('SIGTERM'));
+    process.on('SIGINT', () => this.shutdown('SIGINT'));
+
+    this.runLoop();
+  }
+
+  private async runLoop() {
+    while (!this.isShuttingDown) {
+      const startedAt = Date.now();
+
+      try {
+        await this.tick();
+      } catch (err) {
+        console.error('Worker loop error:', err);
+      }
+
+      const elapsed = Date.now() - startedAt;
+      const sleepMs = Math.max(0, TICK_INTERVAL_MS - elapsed);
+
+      if (!this.isShuttingDown) {
+        await new Promise(res => setTimeout(res, sleepMs));
+      }
+    }
+
+    console.log('Worker loop exited');
+    this.cleanup();
   }
 
   private async tick() {
@@ -74,6 +102,41 @@ class SchedulingWorker {
       // Ensure lock is released in case of error, though expiration handles it eventually
       await this.releaseLock();
     }
+  }
+
+  private async shutdown(signal: string) {
+    if (this.isShuttingDown) return;
+    this.isShuttingDown = true;
+    console.log(`Received ${signal}, shutting down gracefully...`);
+    // The runLoop will exit after the current tick and sleep
+  }
+
+  private async publish<T>(channel: string, payload: T) {
+    const message = JSON.stringify({
+      ...payload,
+      version: 1,
+      _timestamp: Date.now(),
+    });
+    await redis.publish(channel, message);
+  }
+
+  private async cleanup() {
+    try {
+      await redis.quit();
+      console.log('Redis connection closed.');
+    } catch (e) {
+      console.error('Error closing Redis:', e);
+    }
+
+    try {
+      await prisma.$disconnect();
+      console.log('Prisma connection closed.');
+    } catch (e) {
+      console.error('Error closing Prisma:', e);
+    }
+
+    console.log('Worker shutdown complete.');
+    process.exit(0);
   }
 
   private async acquireLock(): Promise<boolean> {
@@ -295,14 +358,14 @@ class SchedulingWorker {
       });
 
       const payload = { type: 'alert_created', alert };
-      await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
+      await this.publish(`alerts:site:${shift.siteId}`, payload);
     });
   }
 
   private async clearAttentionEvent(shift: CachedShift, attentionIndex: number) {
     const alertId = `transient-${shift.id}-${attentionIndex}`;
     const payload = { type: 'alert_cleared', alertId };
-    await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
+    await this.publish(`alerts:site:${shift.siteId}`, payload);
   }
 
   private async sendAttentionEvent(
@@ -327,7 +390,7 @@ class SchedulingWorker {
     };
 
     const payload = { type: 'alert_attention', alert: fakeAlert };
-    await redis.publish(`alerts:site:${shift.siteId}`, JSON.stringify(payload));
+    await this.publish(`alerts:site:${shift.siteId}`, payload);
 
     shift.lastAttentionIndexSent = attentionIndex;
     this.shiftStates.set(shift.id, { lastAttentionIndexSent: attentionIndex });
@@ -353,7 +416,7 @@ class SchedulingWorker {
     }
 
     const activeSitesPayload = Array.from(activeSitesMap.values());
-    await redis.publish('dashboard:active-shifts', JSON.stringify(activeSitesPayload));
+    await this.publish('dashboard:active-shifts', activeSitesPayload);
   }
 
   private async broadcastUpcomingShifts(now: Date) {
@@ -374,7 +437,7 @@ class SchedulingWorker {
       take: 50,
     });
     // Broadcast to a new channel
-    await redis.publish('dashboard:upcoming-shifts', JSON.stringify(upcomingShifts));
+    await this.publish('dashboard:upcoming-shifts', upcomingShifts);
     // console.log(`[Upcoming Sync] Broadcasted ${upcomingShifts.length} upcoming shifts.`);
   }
 }

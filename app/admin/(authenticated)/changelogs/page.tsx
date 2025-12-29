@@ -22,6 +22,7 @@ export default async function ChangelogsPage(props: ChangelogsPageProps) {
   const { page, perPage, skip } = getPaginationParams(searchParams);
   const action = searchParams.action as string | undefined;
   const entityType = searchParams.entityType as string | undefined;
+  const entityId = searchParams.entityId as string | undefined;
   const startDateParam = searchParams.startDate as string | undefined;
   const endDateParam = searchParams.endDate as string | undefined;
 
@@ -44,6 +45,10 @@ export default async function ChangelogsPage(props: ChangelogsPageProps) {
 
   if (entityType) {
     where.entityType = entityType;
+  }
+
+  if (entityId) {
+    where.entityId = entityId;
   }
 
   if (startDateParam || endDateParam) {

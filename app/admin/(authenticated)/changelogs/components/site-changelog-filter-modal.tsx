@@ -5,23 +5,29 @@ import Modal from '../../components/modal';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { parseISO } from 'date-fns';
+import { Serialized } from '@/lib/utils';
+import { Site } from '@prisma/client';
+import Select from '../../components/select';
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onApply: (filters: { startDate?: Date; endDate?: Date; action?: string }) => void;
+  onApply: (filters: { startDate?: Date; endDate?: Date; action?: string; entityId?: string }) => void;
   initialFilters: {
     startDate?: string | null;
     endDate?: string | null;
     action?: string | null;
+    entityId?: string | null;
   };
+  sites?: Serialized<Site>[];
 };
 
 export default function SiteChangelogFilterModal({ 
   isOpen, 
   onClose, 
   onApply, 
-  initialFilters 
+  initialFilters,
+  sites = []
 }: Props) {
   const [startDate, setStartDate] = useState<Date | undefined>(
     initialFilters.startDate ? parseISO(initialFilters.startDate) : undefined
@@ -30,12 +36,19 @@ export default function SiteChangelogFilterModal({
     initialFilters.endDate ? parseISO(initialFilters.endDate) : undefined
   );
   const [action, setAction] = useState<string>(initialFilters.action || '');
+  const [entityId, setEntityId] = useState<string>(initialFilters.entityId || '');
+
+  const siteOptions = [
+    { value: '', label: 'All Sites' },
+    ...sites.map(site => ({ value: site.id, label: site.name })),
+  ];
 
   const handleApply = () => {
     onApply({
       startDate,
       endDate,
       action,
+      entityId,
     });
     onClose();
   };
@@ -44,11 +57,12 @@ export default function SiteChangelogFilterModal({
     setStartDate(undefined);
     setEndDate(undefined);
     setAction('');
+    setEntityId('');
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Filter Site Audit Logs">
-      <div className="flex flex-col justify-between p-4 min-h-[300px]">
+      <div className="flex flex-col justify-between p-4 min-h-[350px]">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
@@ -77,6 +91,16 @@ export default function SiteChangelogFilterModal({
                 placeholderText="End Date"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Site</label>
+            <Select
+              options={siteOptions}
+              value={siteOptions.find(opt => opt.value === entityId)}
+              onChange={(val) => setEntityId(val?.value || '')}
+              placeholder="All Sites"
+            />
           </div>
 
           <div>

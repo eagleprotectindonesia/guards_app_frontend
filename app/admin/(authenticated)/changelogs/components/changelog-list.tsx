@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, ComponentType } from 'react';
-import { Changelog, Prisma } from '@prisma/client';
+import { Changelog, Prisma, Guard, Site } from '@prisma/client';
 import { Serialized } from '@/lib/utils';
 import PaginationNav from '../../components/pagination-nav';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -19,6 +19,8 @@ type FilterModalProps = {
   onClose: () => void;
   onApply: (filters: Record<string, string | Date | null | undefined>) => void;
   initialFilters: Record<string, string | null>;
+  guards?: Serialized<Guard>[];
+  sites?: Serialized<Site>[];
 };
 
 type ChangelogListProps = {
@@ -32,6 +34,8 @@ type ChangelogListProps = {
   fixedEntityType?: string;
   showEntityName?: boolean;
   FilterModal: ComponentType<FilterModalProps>;
+  guards?: Serialized<Guard>[];
+  sites?: Serialized<Site>[];
 };
 
 export default function ChangelogList({
@@ -45,6 +49,8 @@ export default function ChangelogList({
   fixedEntityType,
   showEntityName = false,
   FilterModal,
+  guards,
+  sites,
 }: ChangelogListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -95,6 +101,12 @@ export default function ChangelogList({
       params.delete('entityType');
     }
 
+    if (typeof filters.entityId === 'string' && filters.entityId) {
+      params.set('entityId', filters.entityId);
+    } else {
+      params.delete('entityId');
+    }
+
     params.set('page', '1');
     router.push(`${pathname}?${params.toString()}`);
   };
@@ -104,6 +116,7 @@ export default function ChangelogList({
     searchParams.get('endDate'),
     searchParams.get('action'),
     searchParams.get('entityType'),
+    searchParams.get('entityId'),
   ].filter(Boolean).length;
 
   return (
@@ -262,7 +275,10 @@ export default function ChangelogList({
           endDate: searchParams.get('endDate'),
           action: searchParams.get('action'),
           entityType: searchParams.get('entityType'),
+          entityId: searchParams.get('entityId'),
         }}
+        guards={guards}
+        sites={sites}
       />
     </div>
   );

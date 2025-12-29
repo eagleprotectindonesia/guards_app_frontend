@@ -21,6 +21,7 @@ export default async function SiteAuditPage(props: PageProps) {
   const searchParams = await props.searchParams;
   const { page, perPage, skip } = getPaginationParams(searchParams);
   const action = searchParams.action as string | undefined;
+  const entityId = searchParams.entityId as string | undefined;
   const startDateParam = searchParams.startDate as string | undefined;
   const endDateParam = searchParams.endDate as string | undefined;
 
@@ -41,6 +42,10 @@ export default async function SiteAuditPage(props: PageProps) {
     where.action = action;
   }
 
+  if (entityId) {
+    where.entityId = entityId;
+  }
+
   if (startDateParam || endDateParam) {
     where.createdAt = {};
     if (startDateParam) {
@@ -57,7 +62,7 @@ export default async function SiteAuditPage(props: PageProps) {
     }
   }
 
-  const [changelogs, totalCount] = await prisma.$transaction([
+  const [changelogs, totalCount, sites] = await prisma.$transaction([
     prisma.changelog.findMany({
       where,
       orderBy: { [sortField]: sortOrder },
@@ -72,9 +77,13 @@ export default async function SiteAuditPage(props: PageProps) {
       },
     }),
     prisma.changelog.count({ where }),
+    prisma.site.findMany({
+      orderBy: { name: 'asc' },
+    }),
   ]);
 
   const serializedChangelogs = serialize(changelogs);
+  const serializedSites = serialize(sites);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -90,6 +99,7 @@ export default async function SiteAuditPage(props: PageProps) {
           fixedEntityType="Site"
           showEntityName={true}
           FilterModal={SiteChangelogFilterModal}
+          sites={serializedSites}
         />
       </Suspense>
     </div>

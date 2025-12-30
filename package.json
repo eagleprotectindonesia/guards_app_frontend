@@ -6,7 +6,7 @@
     "dev": "concurrently --prefix-colors \"bgBlue.bold,bgMagenta.bold\" --names \"NEXT,WORKER\" \"next dev\" \"tsx --watch worker.ts\"",
     "dev:https": "concurrently --prefix-colors \"bgBlue.bold,bgMagenta.bold\" --names \"NEXT,WORKER\" \"next dev --experimental-https\" \"tsx --watch worker.ts\"",
     "build": "next build",
-    "start": "next start",
+    "start": "node server.js",
     "lint": "tsc --noEmit && eslint",
     "postinstall": "prisma generate"
   },

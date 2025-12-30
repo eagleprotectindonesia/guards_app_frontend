@@ -2,7 +2,7 @@ name: Deploy to Production (EC2)
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main-backup"]
 
 jobs:
   deploy:
@@ -21,7 +21,7 @@ jobs:
             echo "== Pull latest code =="
             export GIT_SSH_COMMAND="ssh -i ~/.ssh/github_actions_deploy -o StrictHostKeyChecking=accept-new"
             git fetch --all
-            git reset --hard origin/main
+            git reset --hard origin/main-backup
 
             echo "== Inject Build ID =="
             export BUILD_ID=$(git rev-parse --short HEAD)

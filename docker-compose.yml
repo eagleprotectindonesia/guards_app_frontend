@@ -10,6 +10,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
+      - UV_THREADPOOL_SIZE=8
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - NEXT_TELEMETRY_DISABLED=1
@@ -31,6 +32,7 @@ services:
     container_name: ep_guard_worker
     restart: always
     environment:
+      - UV_THREADPOOL_SIZE=8
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - NEXT_TELEMETRY_DISABLED=1

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 import { Prisma } from '@prisma/client';
 
 export async function getAllGuards(orderBy: Prisma.GuardOrderByWithRelationInput = { createdAt: 'desc' }) {
@@ -107,13 +108,20 @@ export async function createGuardWithChangelog(data: Prisma.GuardCreateInput, ad
 export async function updateGuardWithChangelog(id: string, data: Prisma.GuardUpdateInput, adminId: string) {
   return prisma.$transaction(
     async tx => {
+      // If status is being set to false, increment tokenVersion to revoke sessions
+      const updateData = {
+        ...data,
+        lastUpdatedById: adminId,
+        lastUpdatedBy: undefined,
+      };
+
+      if (data.status === false) {
+        updateData.tokenVersion = { increment: 1 };
+      }
+
       const updatedGuard = await tx.guard.update({
         where: { id },
-        data: {
-          ...data,
-          lastUpdatedById: adminId,
-          lastUpdatedBy: undefined,
-        },
+        data: updateData,
       });
 
       await tx.changelog.create({
@@ -133,6 +141,21 @@ export async function updateGuardWithChangelog(id: string, data: Prisma.GuardUpd
           },
         },
       });
+
+      // If status was set to false, notify active sessions to logout via Redis
+      if (data.status === false) {
+        try {
+          await redis.publish(
+            `guard:${updatedGuard.id}`,
+            JSON.stringify({
+              type: 'session_revoked',
+              newTokenVersion: updatedGuard.tokenVersion,
+            })
+          );
+        } catch (error) {
+          console.error('Failed to publish session revocation event:', error);
+        }
+      }
 
       return updatedGuard;
     },

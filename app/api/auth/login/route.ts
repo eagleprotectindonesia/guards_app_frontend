@@ -20,8 +20,8 @@ export async function POST(req: Request) {
     }
 
     // Find admin by email
-    const admin = await prisma.admin.findUnique({
-      where: { email },
+    const admin = await prisma.admin.findFirst({
+      where: { email, deletedAt: null },
     });
 
     if (!admin || !admin.hashedPassword) {

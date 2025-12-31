@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
         } else {
           // 2. Fallback to Database
           const admin = await prisma.admin.findUnique({
-            where: { id: decoded.adminId },
+            where: { id: decoded.adminId, deletedAt: null },
             select: { tokenVersion: true },
           });
           

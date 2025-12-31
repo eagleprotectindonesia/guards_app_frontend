@@ -146,12 +146,14 @@ export default function ShiftList({
           <p className="text-sm text-gray-500 mt-1">Manage guard schedules and assignments.</p>
         </div>
         <div className="flex gap-2">
-          <ShiftExport initialFilters={{
-            startDate,
-            endDate,
-            guardId,
-            siteId
-          }} />
+          <ShiftExport
+            initialFilters={{
+              startDate,
+              endDate,
+              guardId,
+              siteId,
+            }}
+          />
           <button
             onClick={() => setIsFilterOpen(true)}
             className={`inline-flex items-center justify-center h-10 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm ${
@@ -333,7 +335,7 @@ export default function ShiftList({
         onClose={() => setDeleteId(null)}
         onConfirm={handleConfirmDelete}
         title="Delete Shift"
-        description="Are you sure you want to delete this shift? This action cannot be undone and will also delete associated checkin and attendance history."
+        description="Are you sure you want to delete this shift?"
         confirmText="Delete Shift"
         isPending={isPending}
       />

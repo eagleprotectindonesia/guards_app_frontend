@@ -20,6 +20,7 @@ model Admin {
   tokenVersion       Int       @default(0) @map("token_version")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime? @map("deleted_at")
   acknowledgedAlerts Alert[]   @relation("AcknowledgedBy")
   resolvedAlerts     Alert[]   @relation("ResolvedBy")
   updatedGuards      Guard[]   @relation("GuardLastUpdatedBy")
@@ -27,6 +28,7 @@ model Admin {
   updatedShiftTypes  ShiftType[] @relation("ShiftTypeLastUpdatedBy")
   changelogs         Changelog[]
 
+  @@index([deletedAt])
   @@map("admins")
 }
 
@@ -61,12 +63,14 @@ model Guard {
   lastUpdatedById String?      @map("last_updated_by_id")
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?    @map("deleted_at")
   checkins        Checkin[]
   shifts          Shift[]
   attendances     Attendance[]
   lastUpdatedBy   Admin?       @relation("GuardLastUpdatedBy", fields: [lastUpdatedById], references: [id])
 
   @@index([status])
+  @@index([deletedAt])
   @@map("guards")
 }
 
@@ -81,10 +85,13 @@ model Site {
   lastUpdatedById String?  @map("last_updated_by_id")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  deletedAt       DateTime? @map("deleted_at")
   alerts          Alert[]
   shifts          Shift[]
   lastUpdatedBy   Admin?   @relation("SiteLastUpdatedBy", fields: [lastUpdatedById], references: [id])
 
+  @@index([status])
+  @@index([deletedAt])
   @@map("sites")
 }
 
@@ -96,9 +103,11 @@ model ShiftType {
   lastUpdatedById String?  @map("last_updated_by_id")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  deletedAt       DateTime? @map("deleted_at")
   shifts          Shift[]
   lastUpdatedBy   Admin?   @relation("ShiftTypeLastUpdatedBy", fields: [lastUpdatedById], references: [id])
 
+  @@index([deletedAt])
   @@map("shift_types")
 }
 
@@ -119,6 +128,7 @@ model Shift {
   createdBy                   String?        @map("created_by")
   createdAt                   DateTime       @default(now()) @map("created_at")
   updatedAt                   DateTime       @updatedAt
+  deletedAt                   DateTime?      @map("deleted_at")
   alerts                      Alert[]
   checkins                    Checkin[]
   guard                       Guard?         @relation(fields: [guardId], references: [id])
@@ -133,6 +143,7 @@ model Shift {
   @@index([guardId, status, startsAt]) // For active shift queries
   @@index([guardId, status, endsAt]) // For active shift queries with endsAt
   @@index([guardId, status, date, startsAt]) // For next shifts queries
+  @@index([deletedAt])
   @@map("shifts")
 }
 

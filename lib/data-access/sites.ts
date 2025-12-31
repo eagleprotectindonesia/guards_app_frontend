@@ -3,13 +3,14 @@ import { Prisma } from '@prisma/client';
 
 export async function getAllSites() {
   return prisma.site.findMany({
+    where: { deletedAt: null },
     orderBy: { name: 'asc' },
   });
 }
 
 export async function getActiveSites() {
   return prisma.site.findMany({
-    where: { status: true },
+    where: { status: true, deletedAt: null },
     orderBy: { name: 'asc' },
   });
 }
@@ -17,14 +18,17 @@ export async function getActiveSites() {
 export async function getPaginatedSites(params: { query?: string; skip: number; take: number }) {
   const { query, skip, take } = params;
 
-  const where: Prisma.SiteWhereInput = query
-    ? {
-        OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { clientName: { contains: query, mode: 'insensitive' } },
-        ],
-      }
-    : {};
+  const where: Prisma.SiteWhereInput = {
+    deletedAt: null,
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { clientName: { contains: query, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
 
   const [sites, totalCount] = await prisma.$transaction(
     async tx => {
@@ -53,7 +57,7 @@ export async function getPaginatedSites(params: { query?: string; skip: number; 
 
 export async function getSiteById(id: string) {
   return prisma.site.findUnique({
-    where: { id },
+    where: { id, deletedAt: null },
   });
 }
 
@@ -94,7 +98,7 @@ export async function updateSiteWithChangelog(id: string, data: Prisma.SiteUpdat
   return prisma.$transaction(
     async tx => {
       const updatedSite = await tx.site.update({
-        where: { id },
+        where: { id, deletedAt: null },
         data: {
           ...data,
           lastUpdatedById: adminId,
@@ -128,29 +132,34 @@ export async function deleteSiteWithChangelog(id: string, adminId: string) {
   return prisma.$transaction(
     async tx => {
       const siteToDelete = await tx.site.findUnique({
-        where: { id },
+        where: { id, deletedAt: null },
         select: { name: true, clientName: true },
       });
 
-      await tx.site.delete({
+      if (!siteToDelete) return;
+
+      await tx.site.update({
         where: { id },
+        data: {
+          deletedAt: new Date(),
+          status: false,
+          lastUpdatedById: adminId,
+        },
       });
 
-      if (siteToDelete) {
-        await tx.changelog.create({
-          data: {
-            action: 'DELETE',
-            entityType: 'Site',
-            entityId: id,
-            adminId: adminId,
-            details: {
-              name: siteToDelete.name,
-              clientName: siteToDelete.clientName,
-              deletedAt: new Date(),
-            },
+      await tx.changelog.create({
+        data: {
+          action: 'DELETE',
+          entityType: 'Site',
+          entityId: id,
+          adminId: adminId,
+          details: {
+            name: siteToDelete.name,
+            clientName: siteToDelete.clientName,
+            deletedAt: new Date(),
           },
-        });
-      }
+        },
+      });
     },
     { timeout: 5000 }
   );

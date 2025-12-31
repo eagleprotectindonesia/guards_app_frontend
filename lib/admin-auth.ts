@@ -3,9 +3,8 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
 import { Admin } from '@prisma/client';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
 
-export async function getAdminIdFromToken(): Promise<string | undefined> {
+export async function getAdminIdFromToken(): Promise<string> {
   // We trust the proxy.ts middleware has already validated the token and version
   try {
     const cookieStore = await cookies();
@@ -19,7 +18,7 @@ export async function getAdminIdFromToken(): Promise<string | undefined> {
     console.warn('Admin token decode failed:', err);
   }
 
-  return undefined;
+  return '';
 }
 
 export async function getCurrentAdmin(): Promise<Admin | null> {
@@ -30,7 +29,7 @@ export async function getCurrentAdmin(): Promise<Admin | null> {
 
   try {
     const admin = await prisma.admin.findUnique({
-      where: { id: adminId },
+      where: { id: adminId, deletedAt: null },
     });
 
     return admin;

@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 
 export async function getShiftById(id: string) {
   return prisma.shift.findUnique({
-    where: { id },
+    where: { id, deletedAt: null },
     include: {
       site: true,
       shiftType: true,
@@ -20,12 +20,13 @@ export async function getPaginatedShifts(params: {
   include?: Prisma.ShiftInclude;
 }) {
   const { where, orderBy, skip, take, include } = params;
+  const finalWhere = { ...where, deletedAt: null };
 
   const [shifts, totalCount] = await prisma.$transaction(
     async tx => {
       return Promise.all([
         tx.shift.findMany({
-          where,
+          where: finalWhere,
           orderBy,
           skip,
           take,
@@ -35,7 +36,7 @@ export async function getPaginatedShifts(params: {
             guard: { select: { name: true } },
           },
         }),
-        tx.shift.count({ where }),
+        tx.shift.count({ where: finalWhere }),
       ]);
     },
     { timeout: 5000 }
@@ -48,6 +49,7 @@ export async function checkOverlappingShift(guardId: string, startsAt: Date, end
   return prisma.shift.findFirst({
     where: {
       guardId,
+      deletedAt: null,
       id: excludeShiftId ? { not: excludeShiftId } : undefined,
       startsAt: { lt: endsAt },
       endsAt: { gt: startsAt },
@@ -97,7 +99,7 @@ export async function updateShiftWithChangelog(id: string, data: Prisma.ShiftUpd
   return prisma.$transaction(
     async tx => {
       const updatedShift = await tx.shift.update({
-        where: { id },
+        where: { id, deletedAt: null },
         data,
         include: {
           site: true,
@@ -136,18 +138,18 @@ export async function deleteShiftWithChangelog(id: string, adminId: string) {
   return prisma.$transaction(
     async tx => {
       const shiftToDelete = await tx.shift.findUnique({
-        where: { id },
+        where: { id, deletedAt: null },
         include: { site: true, shiftType: true, guard: true },
       });
 
       if (!shiftToDelete) return;
 
-      // Delete related entities first
-      await tx.alert.deleteMany({ where: { shiftId: id } });
-      await tx.checkin.deleteMany({ where: { shiftId: id } });
-      await tx.attendance.deleteMany({ where: { shiftId: id } });
-
-      await tx.shift.delete({ where: { id } });
+      await tx.shift.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
 
       await tx.changelog.create({
         data: {

@@ -53,8 +53,8 @@ export async function createAdmin(prevState: ActionState, formData: FormData): P
   const { name, email, password, role } = validatedFields.data;
 
   try {
-    const existingAdmin = await prisma.admin.findUnique({
-      where: { email },
+    const existingAdmin = await prisma.admin.findFirst({
+      where: { email, deletedAt: null },
     });
 
     if (existingAdmin) {
@@ -122,6 +122,7 @@ export async function updateAdmin(id: string, prevState: ActionState, formData: 
     const existingAdmin = await prisma.admin.findFirst({
       where: {
         email,
+        deletedAt: null,
         id: { not: id },
       },
     });
@@ -174,8 +175,8 @@ export async function deleteAdmin(id: string) {
 
   try {
     const adminToDelete = await prisma.admin.findUnique({
-      where: { id },
-      select: { role: true }, // Only need the role
+      where: { id, deletedAt: null },
+      select: { role: true, email: true },
     });
 
     if (!adminToDelete) {
@@ -186,9 +187,19 @@ export async function deleteAdmin(id: string) {
       return { success: false, message: 'Cannot delete a Super Admin. Change their role to Admin first.' };
     }
 
-    await prisma.admin.delete({
+    await prisma.admin.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        email: `${adminToDelete.email}#deleted#${id}`,
+        tokenVersion: { increment: 1 }, // Logout all sessions
+      },
     });
+
+    // Invalidate Redis cache for this admin
+    const cacheKey = `admin:token_version:${id}`;
+    await redis.del(cacheKey);
+
     revalidatePath('/admin/admins');
     return { success: true };
   } catch (error) {

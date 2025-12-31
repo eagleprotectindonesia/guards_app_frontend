@@ -31,26 +31,27 @@ export function getEffectiveStatus(status: boolean, joinDateVal?: string | Date 
 
 export async function getAllGuards(orderBy: Prisma.GuardOrderByWithRelationInput = { createdAt: 'desc' }) {
   return prisma.guard.findMany({
+    where: { deletedAt: null },
     orderBy,
   });
 }
 
 export async function getActiveGuards() {
   return prisma.guard.findMany({
-    where: { status: true },
+    where: { status: true, deletedAt: null },
     orderBy: { name: 'asc' },
   });
 }
 
 export async function getGuardById(id: string) {
   return prisma.guard.findUnique({
-    where: { id },
+    where: { id, deletedAt: null },
   });
 }
 
 export async function findGuardByPhone(phone: string) {
   return prisma.guard.findUnique({
-    where: { phone },
+    where: { phone, deletedAt: null },
   });
 }
 
@@ -61,12 +62,13 @@ export async function getPaginatedGuards(params: {
   take: number;
 }) {
   const { where, orderBy, skip, take } = params;
+  const finalWhere = { ...where, deletedAt: null };
 
   const [guards, totalCount] = await prisma.$transaction(
     async tx => {
       return Promise.all([
         tx.guard.findMany({
-          where,
+          where: finalWhere,
           orderBy,
           skip,
           take,
@@ -78,7 +80,7 @@ export async function getPaginatedGuards(params: {
             },
           },
         }),
-        tx.guard.count({ where }),
+        tx.guard.count({ where: finalWhere }),
       ]);
     },
     { timeout: 5000 }
@@ -92,7 +94,7 @@ export async function getPaginatedGuards(params: {
  */
 export async function updateGuard(id: string, data: Prisma.GuardUpdateInput) {
   return prisma.guard.update({
-    where: { id },
+    where: { id, deletedAt: null },
     data,
   });
 }
@@ -246,28 +248,48 @@ export async function deleteGuardWithChangelog(id: string, adminId: string) {
     async tx => {
       // Fetch guard details before deletion to store in log
       const guardToDelete = await tx.guard.findUnique({
-        where: { id },
+        where: { id, deletedAt: null },
         select: { name: true, phone: true, id: true },
       });
 
-      await tx.guard.delete({
+      if (!guardToDelete) return;
+
+      await tx.guard.update({
         where: { id },
+        data: {
+          deletedAt: new Date(),
+          status: false,
+          // Append suffix to phone to allow re-registration with same phone
+          phone: `${guardToDelete.phone}#deleted#${id}`,
+          lastUpdatedById: adminId,
+          tokenVersion: { increment: 1 }, // Revoke all sessions
+        },
       });
 
-      if (guardToDelete) {
-        await tx.changelog.create({
-          data: {
-            action: 'DELETE',
-            entityType: 'Guard',
-            entityId: id,
-            adminId: adminId,
-            details: {
-              name: guardToDelete.name,
-              phone: guardToDelete.phone,
-              deletedAt: new Date(),
-            },
+      await tx.changelog.create({
+        data: {
+          action: 'DELETE',
+          entityType: 'Guard',
+          entityId: id,
+          adminId: adminId,
+          details: {
+            name: guardToDelete.name,
+            phone: guardToDelete.phone,
+            deletedAt: new Date(),
           },
-        });
+        },
+      });
+
+      // Notify active sessions to logout via Redis
+      try {
+        await redis.publish(
+          `guard:${id}`,
+          JSON.stringify({
+            type: 'session_revoked',
+          })
+        );
+      } catch (error) {
+        console.error('Failed to publish session revocation event:', error);
       }
     },
     { timeout: 5000 }

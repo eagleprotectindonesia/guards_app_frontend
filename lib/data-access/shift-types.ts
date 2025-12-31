@@ -4,13 +4,14 @@ import { parse, addDays, isBefore } from 'date-fns';
 
 export async function getAllShiftTypes(orderBy: Prisma.ShiftTypeOrderByWithRelationInput = { createdAt: 'desc' }) {
   return prisma.shiftType.findMany({
+    where: { deletedAt: null },
     orderBy,
   });
 }
 
 export async function getShiftTypeById(id: string) {
   return prisma.shiftType.findUnique({
-    where: { id },
+    where: { id, deletedAt: null },
     include: {
       lastUpdatedBy: {
         select: {
@@ -28,11 +29,13 @@ export async function getPaginatedShiftTypes(params: {
   take: number;
 }) {
   const { where, orderBy, skip, take } = params;
+  const finalWhere = { ...where, deletedAt: null };
+
   const [shiftTypes, totalCount] = await prisma.$transaction(
     async tx => {
       return Promise.all([
         tx.shiftType.findMany({
-          where,
+          where: finalWhere,
           orderBy,
           skip,
           take,
@@ -44,7 +47,7 @@ export async function getPaginatedShiftTypes(params: {
             },
           },
         }),
-        tx.shiftType.count({ where }),
+        tx.shiftType.count({ where: finalWhere }),
       ]);
     },
     { timeout: 5000 }
@@ -88,7 +91,7 @@ export async function updateShiftTypeWithChangelog(id: string, data: Prisma.Shif
   return prisma.$transaction(
     async tx => {
       const existingShiftType = await tx.shiftType.findUnique({
-        where: { id },
+        where: { id, deletedAt: null },
       });
 
       if (!existingShiftType) {
@@ -132,7 +135,7 @@ export async function deleteShiftTypeWithChangelog(id: string, adminId: string) 
   return prisma.$transaction(
     async tx => {
       const shiftTypeToDelete = await tx.shiftType.findUnique({
-        where: { id },
+        where: { id, deletedAt: null },
         select: { name: true, id: true },
       });
 
@@ -149,8 +152,12 @@ export async function deleteShiftTypeWithChangelog(id: string, adminId: string) 
         throw new Error('Cannot delete shift type: It has associated shifts.');
       }
 
-      await tx.shiftType.delete({
+      await tx.shiftType.update({
         where: { id },
+        data: {
+          deletedAt: new Date(),
+          lastUpdatedById: adminId,
+        },
       });
 
       await tx.changelog.create({

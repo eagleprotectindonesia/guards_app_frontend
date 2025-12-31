@@ -7,7 +7,7 @@ import { isValid, startOfDay, isAfter, isBefore, parseISO } from 'date-fns';
  * Helper to calculate effective status based on join and left dates.
  * If join date is in the future or left date is in the past, status is forced to false.
  */
-function getEffectiveStatus(status: boolean, joinDateVal?: string | Date | null, leftDateVal?: string | Date | null): boolean {
+export function getEffectiveStatus(status: boolean, joinDateVal?: string | Date | null, leftDateVal?: string | Date | null): boolean {
   if (!status) return false;
   const today = startOfDay(new Date());
 
@@ -139,7 +139,7 @@ export async function createGuardWithChangelog(data: Prisma.GuardCreateInput, ad
   );
 }
 
-export async function updateGuardWithChangelog(id: string, data: Prisma.GuardUpdateInput, adminId: string) {
+export async function updateGuardWithChangelog(id: string, data: Prisma.GuardUpdateInput, adminId: string | null) {
   return prisma.$transaction(
     async tx => {
       // If joinDate or leftDate are not in data, we might need them to calculate effective status

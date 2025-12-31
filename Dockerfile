@@ -28,6 +28,8 @@ ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
 
 RUN npm run build
+RUN npm prune --omit=dev
+RUN rm -rf .next/cache
 
 # 4. Production image for the Next.js App
 FROM base AS app-runner
@@ -60,11 +62,13 @@ CMD ["node", "server.js"]
 FROM base AS worker-builder
 WORKDIR /app
 COPY --from=prisma-gen /app/node_modules ./node_modules
-COPY package.json worker.ts ./
+COPY package.json worker.ts tsconfig.json ./
 COPY lib ./lib
+COPY workers ./workers
 COPY prisma ./prisma
 
-RUN npx esbuild worker.ts --bundle --platform=node --target=node24 --outfile=dist/worker.js --external:@prisma/client
+RUN npx esbuild worker.ts --bundle --platform=node --target=node24 --outfile=dist/worker.js \
+    --external:@prisma/client --external:pg --external:@prisma/adapter-pg --external:ioredis --external:dotenv --external:date-fns
 
 # 6. Prepare minimal worker dependencies
 FROM base AS worker-deps

@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getActiveSites } from '@/lib/data-access/sites';
 import { getActiveGuards } from '@/lib/data-access/guards';
+import { getPaginatedShifts } from '@/lib/data-access/shifts';
 
 export const metadata: Metadata = {
   title: 'Shifts Management',
@@ -42,16 +43,13 @@ export default async function ShiftsPage({
     siteId: siteId || undefined,
   };
 
-  const [shifts, totalCount] = await prisma.$transaction([
-    prisma.shift.findMany({
-      where,
-      include: { site: true, shiftType: true, guard: true, attendance: true },
-      orderBy: { startsAt: sort as 'asc' | 'desc' },
-      skip,
-      take: perPage,
-    }),
-    prisma.shift.count({ where }),
-  ]);
+  const { shifts, totalCount } = await getPaginatedShifts({
+    where,
+    orderBy: { startsAt: sort as 'asc' | 'desc' },
+    skip,
+    take: perPage,
+    include: { site: true, shiftType: true, guard: true, attendance: true },
+  });
 
   const sites = await getActiveSites();
   const shiftTypes = await prisma.shiftType.findMany({ orderBy: { name: 'asc' } });

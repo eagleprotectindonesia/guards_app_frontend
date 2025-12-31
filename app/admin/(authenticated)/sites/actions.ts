@@ -1,6 +1,6 @@
 'use server';
 
-import { createSiteSchema } from '@/lib/validations';
+import { createSiteSchema, CreateSiteInput, UpdateSiteInput } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import { getAdminIdFromToken } from '@/lib/admin-auth';
 import {
@@ -9,20 +9,12 @@ import {
   deleteSiteWithChangelog,
   checkSiteRelations,
 } from '@/lib/data-access/sites';
+import { ActionState } from '@/types/actions';
 
-export type ActionState = {
-  message?: string;
-  errors?: {
-    name?: string[];
-    clientName?: string[];
-    address?: string[];
-    latitude?: string[];
-    longitude?: string[];
-  };
-  success?: boolean;
-};
-
-export async function createSite(prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function createSite(
+  prevState: ActionState<CreateSiteInput>,
+  formData: FormData
+): Promise<ActionState<CreateSiteInput>> {
   const adminId = await getAdminIdFromToken();
   const validatedFields = createSiteSchema.safeParse({
     name: formData.get('name'),
@@ -55,7 +47,11 @@ export async function createSite(prevState: ActionState, formData: FormData): Pr
   return { success: true, message: 'Site created successfully' };
 }
 
-export async function updateSite(id: string, prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateSite(
+  id: string,
+  prevState: ActionState<UpdateSiteInput>,
+  formData: FormData
+): Promise<ActionState<UpdateSiteInput>> {
   const adminId = await getAdminIdFromToken();
   const validatedFields = createSiteSchema.safeParse({
     name: formData.get('name'),

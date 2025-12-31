@@ -1,7 +1,9 @@
 'use client';
 
 import { Serialized } from '@/lib/utils';
-import { createShiftType, updateShiftType, ActionState } from '../actions';
+import { createShiftType, updateShiftType } from '../actions';
+import { ActionState } from '@/types/actions';
+import { CreateShiftTypeInput } from '@/lib/validations';
 import { useActionState, useEffect, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { ShiftType } from '@prisma/client';
@@ -35,7 +37,7 @@ const calculateDuration = (start: string | null, end: string | null) => {
 
 export default function ShiftTypeForm({ shiftType }: Props) {
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
+  const [state, formAction, isPending] = useActionState<ActionState<CreateShiftTypeInput>, FormData>(
     shiftType ? updateShiftType.bind(null, shiftType.id) : createShiftType,
     { success: false }
   );

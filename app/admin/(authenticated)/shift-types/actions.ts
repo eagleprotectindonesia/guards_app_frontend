@@ -6,21 +6,15 @@ import {
   deleteShiftTypeWithChangelog,
   updateFutureShifts,
 } from '@/lib/data-access/shift-types';
-import { createShiftTypeSchema } from '@/lib/validations';
+import { createShiftTypeSchema, CreateShiftTypeInput, UpdateShiftTypeInput } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import { getAdminIdFromToken } from '@/lib/admin-auth';
+import { ActionState } from '@/types/actions';
 
-export type ActionState = {
-  message?: string;
-  errors?: {
-    name?: string[];
-    startTime?: string[];
-    endTime?: string[];
-  };
-  success?: boolean;
-};
-
-export async function createShiftType(prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function createShiftType(
+  prevState: ActionState<CreateShiftTypeInput>,
+  formData: FormData
+): Promise<ActionState<CreateShiftTypeInput>> {
   const adminId = await getAdminIdFromToken();
   const validatedFields = createShiftTypeSchema.safeParse({
     name: formData.get('name'),
@@ -50,7 +44,11 @@ export async function createShiftType(prevState: ActionState, formData: FormData
   return { success: true, message: 'Shift Type created successfully' };
 }
 
-export async function updateShiftType(id: string, prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateShiftType(
+  id: string,
+  prevState: ActionState<UpdateShiftTypeInput>,
+  formData: FormData
+): Promise<ActionState<UpdateShiftTypeInput>> {
   const adminId = await getAdminIdFromToken();
   const validatedFields = createShiftTypeSchema.safeParse({
     name: formData.get('name'),

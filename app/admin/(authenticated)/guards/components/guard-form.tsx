@@ -1,7 +1,9 @@
 'use client';
 
 import { Serialized } from '@/lib/utils';
-import { createGuard, updateGuard, ActionState } from '../actions';
+import { createGuard, updateGuard } from '../actions';
+import { ActionState } from '@/types/actions';
+import { CreateGuardInput } from '@/lib/validations';
 import { useActionState, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Guard } from '@prisma/client';
@@ -18,7 +20,7 @@ type Props = {
 
 export default function GuardForm({ guard }: Props) {
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
+  const [state, formAction, isPending] = useActionState<ActionState<CreateGuardInput>, FormData>(
     guard ? updateGuard.bind(null, guard.id) : createGuard,
     { success: false }
   );

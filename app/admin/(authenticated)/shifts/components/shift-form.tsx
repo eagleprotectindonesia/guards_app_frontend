@@ -1,7 +1,9 @@
 'use client';
 
 import { Serialized } from '@/lib/utils';
-import { createShift, updateShift, ActionState } from '../actions';
+import { createShift, updateShift } from '../actions';
+import { ActionState } from '@/types/actions';
+import { CreateShiftInput } from '@/lib/validations';
 import { useActionState, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Shift, Site, ShiftType, Guard } from '@prisma/client';
@@ -20,7 +22,7 @@ type Props = {
 
 export default function ShiftForm({ shift, sites, shiftTypes, guards }: Props) {
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
+  const [state, formAction, isPending] = useActionState<ActionState<CreateShiftInput>, FormData>(
     shift ? updateShift.bind(null, shift.id) : createShift,
     { success: false }
   );

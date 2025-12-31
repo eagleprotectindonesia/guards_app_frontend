@@ -2,7 +2,9 @@
 
 import { useActionState, useEffect } from 'react';
 import Modal from '../../components/modal';
-import { updateGuardPassword, ActionState } from '../actions';
+import { updateGuardPassword } from '../actions';
+import { ActionState } from '@/types/actions';
+import { UpdateGuardPasswordInput } from '@/lib/validations';
 import { PasswordInput } from '@/components/ui/password-input';
 import toast from 'react-hot-toast';
 
@@ -14,7 +16,7 @@ type ChangePasswordModalProps = {
 };
 
 export default function ChangePasswordModal({ isOpen, onClose, guardId, guardName }: ChangePasswordModalProps) {
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
+  const [state, formAction, isPending] = useActionState<ActionState<UpdateGuardPasswordInput>, FormData>(
     guardId ? updateGuardPassword.bind(null, guardId) : async () => ({ success: false }),
     { success: false }
   );

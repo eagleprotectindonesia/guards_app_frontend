@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { createShiftSchema } from '@/lib/validations';
+import { createShiftSchema, CreateShiftInput, UpdateShiftInput } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import { parse, addDays, isBefore } from 'date-fns';
 import { Prisma } from '@prisma/client';
@@ -16,21 +16,12 @@ import {
   bulkCreateShiftsWithChangelog,
 } from '@/lib/data-access/shifts';
 import { getShiftTypeDurationInMins } from '@/lib/data-access/shift-types';
+import { ActionState } from '@/types/actions';
 
-export type ActionState = {
-  message?: string;
-  errors?: {
-    siteId?: string[];
-    shiftTypeId?: string[];
-    guardId?: string[];
-    date?: string[];
-    requiredCheckinIntervalMins?: string[];
-    graceMinutes?: string[];
-  };
-  success?: boolean;
-};
-
-export async function createShift(prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function createShift(
+  prevState: ActionState<CreateShiftInput>,
+  formData: FormData
+): Promise<ActionState<CreateShiftInput>> {
   const adminId = await getAdminIdFromToken();
   const validatedFields = createShiftSchema.safeParse({
     siteId: formData.get('siteId'),
@@ -136,7 +127,11 @@ export async function createShift(prevState: ActionState, formData: FormData): P
   return { success: true, message: 'Shift created successfully' };
 }
 
-export async function updateShift(id: string, prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateShift(
+  id: string,
+  prevState: ActionState<UpdateShiftInput>,
+  formData: FormData
+): Promise<ActionState<UpdateShiftInput>> {
   const adminId = await getAdminIdFromToken();
   const validatedFields = createShiftSchema.safeParse({
     siteId: formData.get('siteId'),

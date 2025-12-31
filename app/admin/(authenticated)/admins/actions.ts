@@ -8,20 +8,10 @@ import {
   updateAdminWithChangelog,
 } from '@/lib/data-access/admins';
 import { getCurrentAdmin } from '@/lib/admin-auth';
-import { createAdminSchema, updateAdminSchema } from '@/lib/validations';
+import { createAdminSchema, updateAdminSchema, CreateAdminInput, UpdateAdminInput } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
-
-export type ActionState = {
-  message?: string;
-  errors?: {
-    name?: string[];
-    email?: string[];
-    password?: string[];
-    role?: string[];
-  };
-  success?: boolean;
-};
+import { ActionState } from '@/types/actions';
 
 async function checkSuperAdmin() {
   const currentAdmin = await getCurrentAdmin();
@@ -31,7 +21,10 @@ async function checkSuperAdmin() {
   return currentAdmin;
 }
 
-export async function createAdmin(prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function createAdmin(
+  prevState: ActionState<CreateAdminInput>,
+  formData: FormData
+): Promise<ActionState<CreateAdminInput>> {
   const currentAdmin = await checkSuperAdmin();
   if (!currentAdmin) {
     return {
@@ -91,7 +84,11 @@ export async function createAdmin(prevState: ActionState, formData: FormData): P
   return { success: true, message: 'Admin created successfully' };
 }
 
-export async function updateAdmin(id: string, prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateAdmin(
+  id: string,
+  prevState: ActionState<UpdateAdminInput>,
+  formData: FormData
+): Promise<ActionState<UpdateAdminInput>> {
   const currentAdmin = await checkSuperAdmin();
   if (!currentAdmin) {
     return {

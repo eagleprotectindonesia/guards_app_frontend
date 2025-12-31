@@ -1,7 +1,9 @@
 'use client';
 
 import { Serialized } from '@/lib/utils';
-import { createAdmin, updateAdmin, ActionState } from '../actions';
+import { createAdmin, updateAdmin } from '../actions';
+import { ActionState } from '@/types/actions';
+import { CreateAdminInput } from '@/lib/validations';
 import { useActionState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Admin } from '@prisma/client';
@@ -14,7 +16,7 @@ type Props = {
 
 export default function AdminForm({ admin }: Props) {
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
+  const [state, formAction, isPending] = useActionState<ActionState<CreateAdminInput>, FormData>(
     admin ? updateAdmin.bind(null, admin.id) : createAdmin,
     { success: false }
   );

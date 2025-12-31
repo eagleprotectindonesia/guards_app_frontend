@@ -142,8 +142,14 @@ export const checkInSchema = z.object({
 });
 
 export type CreateSiteInput = z.infer<typeof createSiteSchema>;
+export type UpdateSiteInput = CreateSiteInput; // Same for now
 export type CreateAdminInput = z.infer<typeof createAdminSchema>;
+export type UpdateAdminInput = z.infer<typeof updateAdminSchema>;
 export type CreateGuardInput = z.infer<typeof createGuardSchema>;
+export type UpdateGuardInput = z.infer<typeof updateGuardSchema>;
+export type UpdateGuardPasswordInput = z.infer<typeof updateGuardPasswordSchema>;
 export type CreateShiftTypeInput = z.infer<typeof createShiftTypeSchema>;
+export type UpdateShiftTypeInput = CreateShiftTypeInput; // Same for now
 export type CreateShiftInput = z.infer<typeof createShiftSchema>;
+export type UpdateShiftInput = CreateShiftInput; // Same for now
 export type CheckInInput = z.infer<typeof checkInSchema>;

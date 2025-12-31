@@ -9,7 +9,14 @@ import {
   findExistingGuards,
   bulkCreateGuardsWithChangelog,
 } from '@/lib/data-access/guards';
-import { createGuardSchema, updateGuardSchema, updateGuardPasswordSchema } from '@/lib/validations';
+import {
+  createGuardSchema,
+  updateGuardSchema,
+  updateGuardPasswordSchema,
+  CreateGuardInput,
+  UpdateGuardInput,
+  UpdateGuardPasswordInput,
+} from '@/lib/validations';
 import { hashPassword, serialize, Serialized } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 import { Guard, Prisma } from '@prisma/client';
@@ -17,30 +24,27 @@ import { parse, isValid } from 'date-fns';
 import { parsePhoneNumberWithError } from 'libphonenumber-js';
 import { getAdminIdFromToken } from '@/lib/admin-auth';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
-
-export type ActionState = {
-  message?: string;
-  errors?: {
-    name?: string[];
-    phone?: string[];
-    id?: string[];
-    password?: string[];
-    confirmPassword?: string[];
-    guardCode?: string[];
-    status?: string[];
-    joinDate?: string[];
-    leftDate?: string[];
-    note?: string[];
-  };
-  success?: boolean;
-};
+import { ActionState } from '@/types/actions';
 
 export async function getAllGuardsForExport(): Promise<Serialized<Guard>[]> {
   const guards = await getAllGuards();
   return serialize(guards);
 }
 
-export async function createGuard(prevState: ActionState, formData: FormData): Promise<ActionState> {
+type PrismaUniqueConstraintMeta = {
+  driverAdapterError?: {
+    cause?: {
+      constraint?: {
+        fields?: string[];
+      };
+    };
+  };
+};
+
+export async function createGuard(
+  prevState: ActionState<CreateGuardInput>,
+  formData: FormData
+): Promise<ActionState<CreateGuardInput>> {
   const adminId = await getAdminIdFromToken();
   const validatedFields = createGuardSchema.safeParse({
     name: formData.get('name'),
@@ -77,15 +81,16 @@ export async function createGuard(prevState: ActionState, formData: FormData): P
     if (error instanceof PrismaClientKnownRequestError) {
       // Check for unique constraint violation
       if (error.code === 'P2002') {
-        const target = error.meta?.target as string[];
-        if (target?.includes('phone')) {
+        const meta = error.meta as PrismaUniqueConstraintMeta;
+        const fields = meta?.driverAdapterError?.cause?.constraint?.fields;
+
+        if (fields?.includes('phone')) {
           return {
             message: 'A guard with this phone number already exists.',
             success: false,
           };
         }
-        // Check for primary key violation (id) or explicit field check
-        if (target?.includes('id') || target?.includes('guards_pkey')) {
+        if (fields?.includes('id')) {
           return {
             message: 'A guard with this ID already exists.',
             success: false,
@@ -108,7 +113,11 @@ export async function createGuard(prevState: ActionState, formData: FormData): P
   return { success: true, message: 'Guard created successfully' };
 }
 
-export async function updateGuard(id: string, prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateGuard(
+  id: string,
+  prevState: ActionState<UpdateGuardInput>,
+  formData: FormData
+): Promise<ActionState<UpdateGuardInput>> {
   const adminId = await getAdminIdFromToken();
   const validatedFields = updateGuardSchema.safeParse({
     name: formData.get('name'),
@@ -133,8 +142,10 @@ export async function updateGuard(id: string, prevState: ActionState, formData: 
   } catch (error) {
     if (error instanceof PrismaClientKnownRequestError) {
       if (error.code === 'P2002') {
-        const target = error.meta?.target as string[];
-        if (target?.includes('phone')) {
+        const meta = error.meta as PrismaUniqueConstraintMeta;
+        const fields = meta?.driverAdapterError?.cause?.constraint?.fields;
+
+        if (fields?.includes('phone')) {
           return {
             message: 'A guard with this phone number already exists.',
             success: false,
@@ -159,9 +170,9 @@ export async function updateGuard(id: string, prevState: ActionState, formData: 
 
 export async function updateGuardPassword(
   id: string,
-  prevState: ActionState,
+  prevState: ActionState<UpdateGuardPasswordInput>,
   formData: FormData
-): Promise<ActionState> {
+): Promise<ActionState<UpdateGuardPasswordInput>> {
   const validatedFields = updateGuardPasswordSchema.safeParse({
     password: formData.get('password'),
     confirmPassword: formData.get('confirmPassword'),

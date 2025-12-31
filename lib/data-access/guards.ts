@@ -1,6 +1,33 @@
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { Prisma } from '@prisma/client';
+import { isValid, startOfDay, isAfter, isBefore, parseISO } from 'date-fns';
+
+/**
+ * Helper to calculate effective status based on join and left dates.
+ * If join date is in the future or left date is in the past, status is forced to false.
+ */
+function getEffectiveStatus(status: boolean, joinDateVal?: string | Date | null, leftDateVal?: string | Date | null): boolean {
+  if (!status) return false;
+  const today = startOfDay(new Date());
+
+  const normalize = (val: string | Date) => {
+    if (val instanceof Date) return startOfDay(val);
+    return startOfDay(parseISO(val.toString()));
+  };
+
+  if (joinDateVal) {
+    const joinDate = normalize(joinDateVal);
+    if (isValid(joinDate) && isAfter(joinDate, today)) return false;
+  }
+
+  if (leftDateVal) {
+    const leftDate = normalize(leftDateVal);
+    if (isValid(leftDate) && isBefore(leftDate, today)) return false;
+  }
+
+  return true;
+}
 
 export async function getAllGuards(orderBy: Prisma.GuardOrderByWithRelationInput = { createdAt: 'desc' }) {
   return prisma.guard.findMany({
@@ -71,11 +98,18 @@ export async function updateGuard(id: string, data: Prisma.GuardUpdateInput) {
 }
 
 export async function createGuardWithChangelog(data: Prisma.GuardCreateInput, adminId: string) {
+  const effectiveStatus = getEffectiveStatus(
+    data.status ?? true,
+    data.joinDate as Date | string | undefined,
+    data.leftDate as Date | string | undefined
+  );
+
   return prisma.$transaction(
     async tx => {
       const createdGuard = await tx.guard.create({
         data: {
           ...data,
+          status: effectiveStatus,
           lastUpdatedById: adminId,
           lastUpdatedBy: undefined,
         },
@@ -108,14 +142,36 @@ export async function createGuardWithChangelog(data: Prisma.GuardCreateInput, ad
 export async function updateGuardWithChangelog(id: string, data: Prisma.GuardUpdateInput, adminId: string) {
   return prisma.$transaction(
     async tx => {
-      // If status is being set to false, increment tokenVersion to revoke sessions
+      // If joinDate or leftDate are not in data, we might need them to calculate effective status
+      // especially if status is being set to true or if it's a periodic check.
+
+      let joinDate = data.joinDate as Date | string | undefined;
+      let leftDate = data.leftDate as Date | string | undefined;
+      let status = data.status ;
+
+      if (joinDate === undefined || leftDate === undefined || status === undefined) {
+        const current = await tx.guard.findUnique({
+          where: { id },
+          select: { joinDate: true, leftDate: true, status: true },
+        });
+        if (current) {
+          if (joinDate === undefined) joinDate = current.joinDate ?? undefined;
+          if (leftDate === undefined) leftDate = current.leftDate ?? undefined;
+          if (status === undefined) status = current.status;
+        }
+      }
+
+      const effectiveStatus = getEffectiveStatus((status as boolean | undefined) ?? true, joinDate, leftDate);
+
+      // If status is being set to false (or calculated as false), increment tokenVersion to revoke sessions
       const updateData = {
         ...data,
+        status: effectiveStatus,
         lastUpdatedById: adminId,
         lastUpdatedBy: undefined,
       };
 
-      if (data.status === false) {
+      if (effectiveStatus === false) {
         updateData.tokenVersion = { increment: 1 };
       }
 
@@ -134,7 +190,7 @@ export async function updateGuardWithChangelog(id: string, data: Prisma.GuardUpd
             name: data.name ? updatedGuard.name : undefined,
             phone: data.phone ? updatedGuard.phone : undefined,
             guardCode: data.guardCode ? updatedGuard.guardCode : undefined,
-            status: data.status ? updatedGuard.status : undefined,
+            status: updatedGuard.status,
             joinDate: data.joinDate ? updatedGuard.joinDate : undefined,
             leftDate: data.leftDate ? updatedGuard.leftDate : undefined,
             note: data.note ? updatedGuard.note : undefined,
@@ -143,7 +199,7 @@ export async function updateGuardWithChangelog(id: string, data: Prisma.GuardUpd
       });
 
       // If status was set to false, notify active sessions to logout via Redis
-      if (data.status === false) {
+      if (updatedGuard.status === false) {
         try {
           await redis.publish(
             `guard:${updatedGuard.id}`,
@@ -228,10 +284,19 @@ export async function findExistingGuards(phones: string[], ids: string[]) {
 }
 
 export async function bulkCreateGuardsWithChangelog(guardsData: Prisma.GuardCreateManyInput[], adminId: string) {
+  const finalData = guardsData.map(g => ({
+    ...g,
+    status: getEffectiveStatus(
+      g.status ?? true,
+      g.joinDate as Date | string | undefined,
+      g.leftDate as Date | string | undefined
+    ),
+  }));
+
   return prisma.$transaction(
     async tx => {
       const createdGuards = await tx.guard.createManyAndReturn({
-        data: guardsData,
+        data: finalData,
         select: {
           id: true,
           name: true,
@@ -262,6 +327,6 @@ export async function bulkCreateGuardsWithChangelog(guardsData: Prisma.GuardCrea
 
       return createdGuards;
     },
-    { timeout: 5000 }
+    { timeout: 15000 }
   );
 }

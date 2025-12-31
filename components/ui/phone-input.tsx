@@ -12,9 +12,18 @@ interface PhoneInputProps {
   onChange?: (value: Value | undefined) => void;
   className?: string;
   placeholder?: string;
+  required?: boolean;
 }
 
-const PhoneInput: React.FC<PhoneInputProps> = ({ id, inputName, defaultValue, onChange, className, placeholder }) => {
+const PhoneInput: React.FC<PhoneInputProps> = ({
+  id,
+  inputName,
+  defaultValue,
+  onChange,
+  className,
+  placeholder,
+  required,
+}) => {
   const [value, setValue] = useState<Value | undefined>(defaultValue);
 
   const handleChange = (newValue?: Value) => {
@@ -46,9 +55,10 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ id, inputName, defaultValue, on
         countryCallingCodeEditable={false}
         className={`w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all ${className}`}
         defaultCountry={defaultCountry}
+        required={required}
       />
       {/* Hidden input to submit the clean E164 number */}
-      <input type="hidden" name={inputName} value={value || ''} />
+      <input type="hidden" name={inputName} value={value || ''} required={required} />
     </>
   );
 };

@@ -38,18 +38,19 @@ export default function GuardForm({ guard }: Props) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{guard ? 'Edit Guard' : 'Add New Guard'}</h1>
-      <form action={formAction} className="space-y-6">
+      <form action={formAction} className="space-y-6" autoComplete="off">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Name Field */}
           <div>
             <label htmlFor="name" className="block font-medium text-gray-700 mb-1">
-              Full Name
+              Full Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="name"
               id="name"
               defaultValue={guard?.name || ''}
+              required
               className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
               placeholder="e.g. John Doe"
             />
@@ -59,13 +60,14 @@ export default function GuardForm({ guard }: Props) {
           {/* Phone Field */}
           <div>
             <label htmlFor="phone" className="block font-medium text-gray-700 mb-1">
-              Phone Number
+              Phone Number <span className="text-red-500">*</span>
             </label>
             <PhoneInput
               inputName="phone"
               id="phone"
               defaultValue={(guard?.phone as E164Number) || undefined}
               placeholder="e.g. +62550123456"
+              required
             />
             {state.errors?.phone && <p className="text-red-500 text-xs mt-1">{state.errors.phone[0]}</p>}
           </div>
@@ -73,7 +75,7 @@ export default function GuardForm({ guard }: Props) {
           {/* Employee ID Field */}
           <div>
             <label htmlFor="id" className="block font-medium text-gray-700 mb-1">
-              Employee ID
+              Employee ID <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -90,27 +92,34 @@ export default function GuardForm({ guard }: Props) {
                 guard ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
               }`}
               placeholder="e.g. EMP001"
+              autoComplete="off"
+              onChange={e => {
+                const filteredValue = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                if (filteredValue !== e.target.value) {
+                  e.target.value = filteredValue;
+                }
+              }}
             />
-            {state.errors?.id && (
-              <p className="text-red-500 text-xs mt-1">{state.errors.id[0]}</p>
-            )}
+            {state.errors?.id && <p className="text-red-500 text-xs mt-1">{state.errors.id[0]}</p>}
           </div>
 
           {/* Guard Code Field */}
           <div>
             <label htmlFor="guardCode" className="block font-medium text-gray-700 mb-1">
-              Guard Code
+              Guard Code <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="guardCode"
               id="guardCode"
               defaultValue={guard?.guardCode || ''}
+              required
               maxLength={12}
               pattern="[a-zA-Z0-9]*"
               title="Guard code must be alphanumeric only, maximum 12 characters"
               className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
               placeholder="e.g. G001"
+              autoComplete="off"
             />
           </div>
 
@@ -146,14 +155,9 @@ export default function GuardForm({ guard }: Props) {
           {/* Join Date Field */}
           <div>
             <label htmlFor="joinDate" className="block font-medium text-gray-700 mb-1">
-              Join Date
+              Join Date <span className="text-red-500">*</span>
             </label>
-            <input
-              type="hidden"
-              name="joinDate"
-              value={joinDate ? format(joinDate, 'yyyy-MM-dd') : ''}
-              required={!guard} // Only required when creating a new guard
-            />
+            <input type="hidden" name="joinDate" value={joinDate ? format(joinDate, 'yyyy-MM-dd') : ''} required />
             <DatePicker
               date={joinDate || undefined}
               setDate={setJoinDate}
@@ -174,6 +178,7 @@ export default function GuardForm({ guard }: Props) {
             <DatePicker
               date={leftDate || undefined}
               setDate={setLeftDate}
+              minDate={joinDate}
               placeholder="Select date"
               className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
             />
@@ -183,7 +188,7 @@ export default function GuardForm({ guard }: Props) {
           {!guard && (
             <div className="md:col-span-2">
               <label htmlFor="password" className="block font-medium text-gray-700 mb-1">
-                Password
+                Password <span className="text-red-500">*</span>
               </label>
               <PasswordInput
                 name="password"
@@ -191,6 +196,7 @@ export default function GuardForm({ guard }: Props) {
                 required={!guard} // Only required when creating
                 className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
                 placeholder="Enter password (at least 6 characters)"
+                autoComplete="new-password"
               />
               {state.errors?.password && <p className="text-red-500 text-xs mt-1">{state.errors.password[0]}</p>}
             </div>

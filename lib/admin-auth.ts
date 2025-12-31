@@ -34,3 +34,11 @@ export async function getCurrentAdmin(): Promise<Admin | null> {
     return null;
   }
 }
+
+export async function checkSuperAdmin() {
+  const currentAdmin = await getCurrentAdmin();
+  if (currentAdmin?.role !== 'superadmin') {
+    return null;
+  }
+  return currentAdmin;
+}

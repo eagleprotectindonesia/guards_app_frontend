@@ -20,9 +20,10 @@ type SiteListProps = {
   page: number;
   perPage: number;
   totalCount: number;
+  isSuperAdmin?: boolean;
 };
 
-export default function SiteList({ sites, page, perPage, totalCount }: SiteListProps) {
+export default function SiteList({ sites, page, perPage, totalCount, isSuperAdmin = false }: SiteListProps) {
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = async (id: string) => {
@@ -136,7 +137,11 @@ export default function SiteList({ sites, page, perPage, totalCount }: SiteListP
                           <Pencil className="w-4 h-4" />
                           <span className="sr-only">Edit</span>
                         </Link>
-                        <DeleteButton onClick={() => handleDelete(site.id)} disabled={isPending} />
+                        <DeleteButton
+                          onClick={() => handleDelete(site.id)}
+                          disabled={!isSuperAdmin || isPending}
+                          title={!isSuperAdmin ? 'Only Super Admins can delete' : 'Delete'}
+                        />
                       </div>
                     </td>
                   </tr>

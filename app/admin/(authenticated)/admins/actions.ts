@@ -7,19 +7,11 @@ import {
   getAdminById,
   updateAdminWithChangelog,
 } from '@/lib/data-access/admins';
-import { getCurrentAdmin } from '@/lib/admin-auth';
+import { checkSuperAdmin } from '@/lib/admin-auth';
 import { createAdminSchema, updateAdminSchema, CreateAdminInput, UpdateAdminInput } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { ActionState } from '@/types/actions';
-
-async function checkSuperAdmin() {
-  const currentAdmin = await getCurrentAdmin();
-  if (currentAdmin?.role !== 'superadmin') {
-    return null;
-  }
-  return currentAdmin;
-}
 
 export async function createAdmin(
   prevState: ActionState<CreateAdminInput>,

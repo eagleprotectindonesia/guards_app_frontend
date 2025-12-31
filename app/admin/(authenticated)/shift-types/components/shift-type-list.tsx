@@ -20,9 +20,16 @@ type ShiftTypeListProps = {
   page: number;
   perPage: number;
   totalCount: number;
+  isSuperAdmin?: boolean;
 };
 
-export default function ShiftTypeList({ shiftTypes, page, perPage, totalCount }: ShiftTypeListProps) {
+export default function ShiftTypeList({
+  shiftTypes,
+  page,
+  perPage,
+  totalCount,
+  isSuperAdmin = false,
+}: ShiftTypeListProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -117,7 +124,11 @@ export default function ShiftTypeList({ shiftTypes, page, perPage, totalCount }:
                           <Pencil className="w-4 h-4" />
                           <span className="sr-only">Edit</span>
                         </Link>
-                        <DeleteButton onClick={() => handleDeleteClick(shiftType.id)} disabled={isPending} />
+                        <DeleteButton
+                          onClick={() => handleDeleteClick(shiftType.id)}
+                          disabled={!isSuperAdmin || isPending}
+                          title={!isSuperAdmin ? 'Only Super Admins can delete' : 'Delete'}
+                        />
                       </div>
                     </td>
                   </tr>

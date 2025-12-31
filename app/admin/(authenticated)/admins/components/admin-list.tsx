@@ -102,7 +102,11 @@ export default function AdminList({ admins, page, perPage, totalCount }: AdminLi
                           <Pencil className="w-4 h-4" />
                           <span className="sr-only">Edit</span>
                         </Link>
-                        <DeleteButton onClick={() => handleDeleteClick(admin.id)} disabled={isPending} />
+                        <DeleteButton
+                          onClick={() => handleDeleteClick(admin.id)}
+                          disabled={isPending || admin.role === 'superadmin'}
+                          title={admin.role === 'superadmin' ? 'Cannot delete a Super Admin' : 'Delete'}
+                        />
                       </div>
                     </td>
                   </tr>

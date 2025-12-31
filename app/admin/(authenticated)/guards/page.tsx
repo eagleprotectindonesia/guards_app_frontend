@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { parseISO, isValid } from 'date-fns';
 import type { Metadata } from 'next';
 import { getPaginatedGuards } from '@/lib/data-access/guards';
+import { getCurrentAdmin } from '@/lib/admin-auth';
 
 export const metadata: Metadata = {
   title: 'Guards Management',
@@ -17,6 +18,7 @@ type GuardsPageProps = {
 };
 
 export default async function GuardsPage(props: GuardsPageProps) {
+  const currentAdmin = await getCurrentAdmin();
   const searchParams = await props.searchParams;
   const { page, perPage, skip } = getPaginationParams(searchParams);
   const query = searchParams.q as string | undefined;
@@ -84,8 +86,10 @@ export default async function GuardsPage(props: GuardsPageProps) {
           sortOrder={sortOrder}
           startDate={startDateParam}
           endDate={endDateParam}
+          isSuperAdmin={currentAdmin?.role === 'superadmin'}
         />
       </Suspense>
     </div>
   );
 }
+

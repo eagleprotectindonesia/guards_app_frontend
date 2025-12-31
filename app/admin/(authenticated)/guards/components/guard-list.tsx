@@ -31,6 +31,7 @@ type GuardListProps = {
   sortOrder?: 'asc' | 'desc';
   startDate?: string;
   endDate?: string;
+  isSuperAdmin?: boolean;
 };
 
 export default function GuardList({
@@ -42,6 +43,7 @@ export default function GuardList({
   sortOrder = 'desc',
   startDate,
   endDate,
+  isSuperAdmin = false,
 }: GuardListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -320,7 +322,11 @@ export default function GuardList({
                           <Pencil className="w-4 h-4" />
                           <span className="sr-only">Edit</span>
                         </Link>
-                        <DeleteButton onClick={() => handleDeleteClick(guard.id)} disabled={isPending} />
+                        <DeleteButton
+                          onClick={() => handleDeleteClick(guard.id)}
+                          disabled={!isSuperAdmin || isPending}
+                          title={!isSuperAdmin ? 'Only Super Admins can delete' : 'Delete'}
+                        />
                         <button
                           type="button"
                           onClick={() => setPasswordModalData({ id: guard.id, name: guard.name })}

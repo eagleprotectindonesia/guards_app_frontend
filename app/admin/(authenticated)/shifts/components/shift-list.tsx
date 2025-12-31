@@ -36,6 +36,7 @@ type ShiftListProps = {
   page: number;
   perPage: number;
   totalCount: number;
+  isSuperAdmin?: boolean;
 };
 
 export default function ShiftList({
@@ -50,6 +51,7 @@ export default function ShiftList({
   page,
   perPage,
   totalCount,
+  isSuperAdmin = false,
 }: ShiftListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -278,7 +280,11 @@ export default function ShiftList({
                           <Pencil className="w-4 h-4" />
                           <span className="sr-only">Edit</span>
                         </Link>
-                        <DeleteButton onClick={() => handleDeleteClick(shift.id)} />
+                        <DeleteButton
+                          onClick={() => handleDeleteClick(shift.id)}
+                          disabled={!isSuperAdmin || isPending}
+                          title={!isSuperAdmin ? 'Only Super Admins can delete' : 'Delete'}
+                        />
                       </div>
                     </td>
                   </tr>

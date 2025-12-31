@@ -7,6 +7,8 @@ import { Prisma } from '@prisma/client';
 import type { Metadata } from 'next';
 import { parseISO, isValid, startOfDay, endOfDay } from 'date-fns';
 import { getAllShiftTypes } from '@/lib/data-access/shift-types';
+import { getCurrentAdmin } from '@/lib/admin-auth';
+import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Shift Type Audit Logs',
@@ -19,6 +21,11 @@ type PageProps = {
 };
 
 export default async function ShiftTypeAuditPage(props: PageProps) {
+  const currentAdmin = await getCurrentAdmin();
+  if (currentAdmin?.role !== 'superadmin') {
+    redirect('/admin/dashboard');
+  }
+
   const searchParams = await props.searchParams;
   const { page, perPage, skip } = getPaginationParams(searchParams);
   const action = searchParams.action as string | undefined;

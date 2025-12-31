@@ -5,6 +5,7 @@ import { createAdminSchema, updateAdminSchema } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { getCurrentAdmin } from '@/lib/admin-auth';
+import { redis } from '@/lib/redis';
 
 export type ActionState = {
   message?: string;
@@ -137,13 +138,22 @@ export async function updateAdmin(id: string, prevState: ActionState, formData: 
       name,
       email,
       role,
-      ...(newPassword && { hashedPassword: await bcrypt.hash(newPassword, 10) }),
+      ...(newPassword && { 
+        hashedPassword: await bcrypt.hash(newPassword, 10),
+        tokenVersion: { increment: 1 }
+      }),
     };
 
     await prisma.admin.update({
       where: { id },
       data,
     });
+
+    // Invalidate Redis cache for this admin
+    if (newPassword) {
+      const cacheKey = `admin:token_version:${id}`;
+      await redis.del(cacheKey);
+    }
   } catch (error) {
     console.error('Database Error:', error);
     return {

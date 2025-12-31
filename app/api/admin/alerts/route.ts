@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: Request) {
-  // TODO: Auth check (Admin access)
+  // Note: Auth check (Admin access) is handled by proxy.ts
 
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get('page') || '1', 10);

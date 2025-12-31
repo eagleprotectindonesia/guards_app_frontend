@@ -5,6 +5,7 @@ import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
 
@@ -73,15 +74,34 @@ export async function changePassword(prevState: ChangePasswordState, formData: F
       return { error: 'Incorrect current password' };
     }
 
-    // 4. Update Password
+    // 4. Update Password and increment version
+    // We increment tokenVersion to invalidate sessions on all other devices/browsers
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await prisma.admin.update({
+    const updatedAdmin = await prisma.admin.update({
       where: { id: adminId },
-      data: { 
+      data: {
         hashedPassword,
-        tokenVersion: { increment: 1 } 
+        tokenVersion: { increment: 1 }
       },
+    });
+
+    // 5. Update Redis cache immediately
+    const cacheKey = `admin:token_version:${adminId}`;
+    await redis.set(cacheKey, updatedAdmin.tokenVersion.toString(), 'EX', 3600);
+
+    // 6. Generate NEW token with the NEW version and set it to keep current session active
+    const newToken = jwt.sign(
+      { adminId: updatedAdmin.id, email: updatedAdmin.email, tokenVersion: updatedAdmin.tokenVersion },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    (await cookies()).set('admin_token', newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
     });
 
     return { message: 'Password changed successfully' };

@@ -15,12 +15,9 @@ type ShiftWithRelations = {
 };
 
 export async function GET(req: Request) {
+  // Note: Auth check (Admin only) is handled by proxy.ts
   const { searchParams } = new URL(req.url);
   const siteId = searchParams.get('siteId');
-
-  // If siteId is missing, we assume "Global Dashboard" mode (all sites).
-
-  // TODO: Auth check (Admin access)
 
   const encoder = new TextEncoder();
   const subscriber = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {

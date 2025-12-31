@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: Request) {
-  // TODO: Auth check (Admin only)
+  // Note: Auth check (Admin only) is handled by proxy.ts
   try {
     const { searchParams } = new URL(req.url);
     const siteId = searchParams.get('siteId');

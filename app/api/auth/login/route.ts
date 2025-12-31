@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey'; // Replace with a strong, random key in production
 
@@ -43,6 +44,10 @@ export async function POST(req: Request) {
         },
       });
     }
+
+    // Cache token version in Redis
+    const cacheKey = `admin:token_version:${admin.id}`;
+    await redis.set(cacheKey, admin.tokenVersion.toString(), 'EX', 3600); // 1 hour
 
     // Generate JWT token
     const token = jwt.sign({ adminId: admin.id, email: admin.email, tokenVersion: admin.tokenVersion }, JWT_SECRET, { expiresIn: '30d' });

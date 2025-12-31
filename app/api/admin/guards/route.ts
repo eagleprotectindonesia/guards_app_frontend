@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAllGuards } from '@/lib/data-access/guards';
 
 export async function GET() {
-  // TODO: Auth check (Admin only)
+  // Note: Auth check (Admin only) is handled by proxy.ts
   try {
     const guards = await getAllGuards();
     // DAL returns orderBy createdAt desc by default, but this endpoint might expect name asc.

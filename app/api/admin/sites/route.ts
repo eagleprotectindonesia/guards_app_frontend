@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAllSites } from '@/lib/data-access/sites';
 
 export async function GET() {
-  // TODO: Auth check (Admin only)
+  // Note: Auth check (Admin only) is handled by proxy.ts
   try {
     const sites = await getAllSites();
     return NextResponse.json(sites);

@@ -3,8 +3,10 @@
 import { Serialized } from '@/lib/utils';
 import { createGuard, updateGuard } from '../actions';
 import { ActionState } from '@/types/actions';
-import { CreateGuardInput } from '@/lib/validations';
-import { useActionState, useEffect, useState } from 'react';
+import { CreateGuardInput, createGuardSchema, updateGuardSchema } from '@/lib/validations';
+import { startTransition, useActionState, useEffect, useRef } from 'react';
+import { useForm, Controller, Resolver, Path } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
 import { Guard } from '@prisma/client';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -20,13 +22,33 @@ type Props = {
 
 export default function GuardForm({ guard }: Props) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+
   const [state, formAction, isPending] = useActionState<ActionState<CreateGuardInput>, FormData>(
     guard ? updateGuard.bind(null, guard.id) : createGuard,
     { success: false }
   );
 
-  const [joinDate, setJoinDate] = useState<Date | undefined>(guard?.joinDate ? new Date(guard.joinDate) : undefined);
-  const [leftDate, setLeftDate] = useState<Date | undefined>(guard?.leftDate ? new Date(guard.leftDate) : undefined);
+  const {
+    register,
+    control,
+    setError,
+    clearErrors,
+    trigger,
+    formState: { errors },
+  } = useForm<CreateGuardInput>({
+    resolver: zodResolver(guard ? updateGuardSchema : createGuardSchema) as Resolver<CreateGuardInput>,
+    defaultValues: {
+      name: guard?.name || '',
+      phone: (guard?.phone as string) || '',
+      id: guard?.id || '',
+      guardCode: guard?.guardCode || '',
+      status: guard?.status ?? true,
+      joinDate: guard?.joinDate ? new Date(guard.joinDate) : undefined,
+      leftDate: guard?.leftDate ? new Date(guard.leftDate) : undefined,
+      note: guard?.note || '',
+    },
+  });
 
   useEffect(() => {
     if (state.success) {
@@ -35,12 +57,43 @@ export default function GuardForm({ guard }: Props) {
     } else if (state.message && !state.success) {
       toast.error(state.message);
     }
-  }, [state, guard, router]);
+
+    if (state.errors) {
+      Object.entries(state.errors).forEach(([key, value]) => {
+        setError(key as Path<CreateGuardInput>, { type: 'server', message: value[0] });
+      });
+    }
+  }, [state, guard, router, setError]);
+
+  const clientAction = async (formData: FormData) => {
+    clearErrors();
+    const isValid = await trigger();
+    if (isValid) {
+      startTransition(() => {
+        formAction(formData);
+      });
+    } else {
+      // Scroll to the first error
+      const firstError = Object.keys(errors)[0];
+      if (firstError) {
+        const element = document.getElementById(firstError);
+        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{guard ? 'Edit Guard' : 'Add New Guard'}</h1>
-      <form action={formAction} className="space-y-6" autoComplete="off">
+      <form
+        ref={formRef}
+        onSubmit={e => {
+          e.preventDefault();
+          clientAction(new FormData(e.currentTarget));
+        }}
+        className="space-y-6"
+        autoComplete="off"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Name Field */}
           <div>
@@ -48,15 +101,13 @@ export default function GuardForm({ guard }: Props) {
               Full Name <span className="text-red-500">*</span>
             </label>
             <input
+              {...register('name')}
               type="text"
-              name="name"
               id="name"
-              defaultValue={guard?.name || ''}
-              required
               className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
               placeholder="e.g. John Doe"
             />
-            {state.errors?.name && <p className="text-red-500 text-xs mt-1">{state.errors.name[0]}</p>}
+            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
           </div>
 
           {/* Phone Field */}
@@ -64,14 +115,20 @@ export default function GuardForm({ guard }: Props) {
             <label htmlFor="phone" className="block font-medium text-gray-700 mb-1">
               Phone Number <span className="text-red-500">*</span>
             </label>
-            <PhoneInput
-              inputName="phone"
-              id="phone"
-              defaultValue={(guard?.phone as E164Number) || undefined}
-              placeholder="e.g. +62550123456"
-              required
+            <Controller
+              control={control}
+              name="phone"
+              render={({ field }) => (
+                <PhoneInput
+                  inputName="phone"
+                  id="phone"
+                  defaultValue={field.value as E164Number}
+                  onChange={field.onChange}
+                  placeholder="e.g. +62550123456"
+                />
+              )}
             />
-            {state.errors?.phone && <p className="text-red-500 text-xs mt-1">{state.errors.phone[0]}</p>}
+            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
           </div>
 
           {/* Employee ID Field */}
@@ -79,30 +136,31 @@ export default function GuardForm({ guard }: Props) {
             <label htmlFor="id" className="block font-medium text-gray-700 mb-1">
               Employee ID <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
+            <Controller
+              control={control}
               name="id"
-              id="id"
-              defaultValue={guard?.id || ''}
-              required
-              readOnly={!!guard}
-              maxLength={6}
-              minLength={6}
-              pattern="[a-zA-Z0-9]{6}"
-              title="Employee ID must be exactly 6 alphanumeric characters"
-              className={`w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all ${
-                guard ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-              }`}
-              placeholder="e.g. EMP001"
-              autoComplete="off"
-              onChange={e => {
-                const filteredValue = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-                if (filteredValue !== e.target.value) {
-                  e.target.value = filteredValue;
-                }
-              }}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="text"
+                  id="id"
+                  readOnly={!!guard}
+                  maxLength={6}
+                  minLength={6}
+                  title="Employee ID must be exactly 6 alphanumeric characters"
+                  className={`w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all ${
+                    guard ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                  }`}
+                  placeholder="e.g. EMP001"
+                  autoComplete="off"
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                    field.onChange(val);
+                  }}
+                />
+              )}
             />
-            {state.errors?.id && <p className="text-red-500 text-xs mt-1">{state.errors.id[0]}</p>}
+            {errors.id && <p className="text-red-500 text-xs mt-1">{errors.id.message}</p>}
           </div>
 
           {/* Guard Code Field */}
@@ -110,48 +168,59 @@ export default function GuardForm({ guard }: Props) {
             <label htmlFor="guardCode" className="block font-medium text-gray-700 mb-1">
               Guard Code <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
+            <Controller
+              control={control}
               name="guardCode"
-              id="guardCode"
-              defaultValue={guard?.guardCode || ''}
-              required
-              maxLength={12}
-              pattern="[a-zA-Z0-9]*"
-              title="Guard code must be alphanumeric only, maximum 12 characters"
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
-              placeholder="e.g. G001"
-              autoComplete="off"
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="text"
+                  id="guardCode"
+                  maxLength={12}
+                  title="Guard code must be alphanumeric only, maximum 12 characters"
+                  className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+                  placeholder="e.g. G001"
+                  autoComplete="off"
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                    field.onChange(val);
+                  }}
+                />
+              )}
             />
+            {errors.guardCode && <p className="text-red-500 text-xs mt-1">{errors.guardCode.message}</p>}
           </div>
 
           {/* Status Field */}
           <div>
-            <label htmlFor="status" className="block font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <div className="flex items-center space-x-4 h-10">
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="status"
-                  value="true"
-                  defaultChecked={guard?.status !== false}
-                  className="text-red-500 focus:ring-red-500"
-                />
-                <span className="ml-2 text-gray-700">Active</span>
-              </label>
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="status"
-                  value="false"
-                  defaultChecked={guard?.status === false}
-                  className="text-red-500 focus:ring-red-500"
-                />
-                <span className="ml-2 text-gray-700">Inactive</span>
-              </label>
-            </div>
+            <label className="block font-medium text-gray-700 mb-1">Status</label>
+            <Controller
+              control={control}
+              name="status"
+              render={({ field }) => (
+                <div className="flex items-center space-x-4 h-10">
+                  <input type="hidden" name="status" value={field.value ? 'true' : 'false'} />
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={field.value === true}
+                      onChange={() => field.onChange(true)}
+                      className="text-red-500 focus:ring-red-500"
+                    />
+                    <span className="ml-2 text-gray-700">Active</span>
+                  </label>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={field.value === false}
+                      onChange={() => field.onChange(false)}
+                      className="text-red-500 focus:ring-red-500"
+                    />
+                    <span className="ml-2 text-gray-700">Inactive</span>
+                  </label>
+                </div>
+              )}
+            />
           </div>
 
           {/* Join Date Field */}
@@ -159,16 +228,24 @@ export default function GuardForm({ guard }: Props) {
             <label htmlFor="joinDate" className="block font-medium text-gray-700 mb-1">
               Join Date <span className="text-red-500">*</span>
             </label>
-            <input type="hidden" name="joinDate" value={joinDate ? format(joinDate, 'yyyy-MM-dd') : ''} required />
-            <DatePicker
-              date={joinDate || undefined}
-              setDate={setJoinDate}
-              placeholder="Select date"
-              className={`w-full h-10 px-3 rounded-lg border ${
-                state.errors?.joinDate ? 'border-red-500' : 'border-gray-200'
-              } focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all`}
+            <Controller
+              control={control}
+              name="joinDate"
+              render={({ field }) => (
+                <>
+                  <input type="hidden" name="joinDate" value={field.value ? format(field.value, 'yyyy-MM-dd') : ''} />
+                  <DatePicker
+                    date={field.value}
+                    setDate={field.onChange}
+                    placeholder="Select date"
+                    className={`w-full h-10 px-3 rounded-lg border ${
+                      errors.joinDate ? 'border-red-500' : 'border-gray-200'
+                    } focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all`}
+                  />
+                </>
+              )}
             />
-            {state.errors?.joinDate && <p className="text-red-500 text-xs mt-1">{state.errors.joinDate[0]}</p>}
+            {errors.joinDate && <p className="text-red-500 text-xs mt-1">{errors.joinDate.message}</p>}
           </div>
 
           {/* Left Date Field */}
@@ -176,13 +253,20 @@ export default function GuardForm({ guard }: Props) {
             <label htmlFor="leftDate" className="block font-medium text-gray-700 mb-1">
               Left Date
             </label>
-            <input type="hidden" name="leftDate" value={leftDate ? format(leftDate, 'yyyy-MM-dd') : ''} />
-            <DatePicker
-              date={leftDate || undefined}
-              setDate={setLeftDate}
-              minDate={joinDate}
-              placeholder="Select date"
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+            <Controller
+              control={control}
+              name="leftDate"
+              render={({ field }) => (
+                <>
+                  <input type="hidden" name="leftDate" value={field.value ? format(field.value, 'yyyy-MM-dd') : ''} />
+                  <DatePicker
+                    date={field.value}
+                    setDate={field.onChange}
+                    placeholder="Select date"
+                    className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+                  />
+                </>
+              )}
             />
           </div>
 
@@ -193,14 +277,13 @@ export default function GuardForm({ guard }: Props) {
                 Password <span className="text-red-500">*</span>
               </label>
               <PasswordInput
-                name="password"
+                {...register('password')}
                 id="password"
-                required={!guard} // Only required when creating
                 className="w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
                 placeholder="Enter password (at least 6 characters)"
                 autoComplete="new-password"
               />
-              {state.errors?.password && <p className="text-red-500 text-xs mt-1">{state.errors.password[0]}</p>}
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
             </div>
           )}
 
@@ -210,9 +293,8 @@ export default function GuardForm({ guard }: Props) {
               Note
             </label>
             <textarea
-              name="note"
+              {...register('note')}
               id="note"
-              defaultValue={guard?.note || ''}
               rows={4}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
               placeholder="Additional information about the guard"

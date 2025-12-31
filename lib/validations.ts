@@ -69,6 +69,7 @@ export const createGuardSchema = z.object({
 });
 
 export const updateGuardSchema = z.object({
+  id: z.string().optional(), // Allow id in the schema for form compatibility
   name: z.string().min(1),
   phone: z
     .string()
@@ -97,7 +98,7 @@ export const updateGuardSchema = z.object({
     ),
   guardCode: z.string().max(12).regex(/^[a-zA-Z0-9]*$/, 'Guard code must be alphanumeric only').optional(),
   status: z.boolean().optional(),
-  joinDate: z.coerce.date().optional(),
+  joinDate: z.coerce.date(),
   leftDate: z.coerce.date().optional(),
   note: z.string().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters long').optional(), // Optional for updates

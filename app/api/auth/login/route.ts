@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { findAdminByEmail } from '@/lib/data-access/admins';
 

@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
-import { prisma } from '@/lib/prisma';
 import { Admin } from '@prisma/client';
 import { getAdminById } from './data-access/admins';
 

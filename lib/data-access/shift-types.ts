@@ -1,6 +1,18 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { parse, addDays, isBefore } from 'date-fns';
+import { parse, addDays, isBefore, differenceInMinutes } from 'date-fns';
+
+export function getShiftTypeDurationInMins(startTime: string, endTime: string) {
+  const dummyDate = '2024-01-01';
+  const start = parse(`${dummyDate} ${startTime}`, 'yyyy-MM-dd HH:mm', new Date());
+  let end = parse(`${dummyDate} ${endTime}`, 'yyyy-MM-dd HH:mm', new Date());
+
+  if (isBefore(end, start)) {
+    end = addDays(end, 1);
+  }
+
+  return differenceInMinutes(end, start);
+}
 
 export async function getAllShiftTypes(orderBy: Prisma.ShiftTypeOrderByWithRelationInput = { createdAt: 'desc' }) {
   return prisma.shiftType.findMany({

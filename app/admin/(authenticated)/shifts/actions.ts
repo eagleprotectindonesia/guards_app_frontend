@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { createShiftSchema } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import { parse, addDays, isBefore } from 'date-fns';
-import { Prisma, Shift } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { getAdminIdFromToken } from '@/lib/admin-auth';
 import { getActiveSites } from '@/lib/data-access/sites';
 import { getActiveGuards } from '@/lib/data-access/guards';
@@ -15,6 +15,7 @@ import {
   deleteShiftWithChangelog,
   bulkCreateShiftsWithChangelog,
 } from '@/lib/data-access/shifts';
+import { getShiftTypeDurationInMins } from '@/lib/data-access/shift-types';
 
 export type ActionState = {
   message?: string;
@@ -59,6 +60,14 @@ export async function createShift(prevState: ActionState, formData: FormData): P
     if (!shiftType) {
       return {
         message: 'Selected Shift Type does not exist.',
+        success: false,
+      };
+    }
+
+    const durationInMins = getShiftTypeDurationInMins(shiftType.startTime, shiftType.endTime);
+    if (durationInMins % requiredCheckinIntervalMins !== 0) {
+      return {
+        message: `Shift duration (${durationInMins} mins) must be a multiple of the check-in interval (${requiredCheckinIntervalMins} mins).`,
         success: false,
       };
     }
@@ -148,6 +157,14 @@ export async function updateShift(id: string, prevState: ActionState, formData: 
 
     if (!shiftType) {
       return { message: 'Selected Shift Type does not exist.', success: false };
+    }
+
+    const durationInMins = getShiftTypeDurationInMins(shiftType.startTime, shiftType.endTime);
+    if (durationInMins % requiredCheckinIntervalMins !== 0) {
+      return {
+        message: `Shift duration (${durationInMins} mins) must be a multiple of the check-in interval (${requiredCheckinIntervalMins} mins).`,
+        success: false,
+      };
     }
 
     const dateObj = new Date(`${date}T00:00:00Z`);
@@ -307,6 +324,14 @@ export async function bulkCreateShifts(
       !isNaN(grace) &&
       grace >= 0
     ) {
+      const durationInMins = getShiftTypeDurationInMins(shiftType.startTime, shiftType.endTime);
+      if (durationInMins % interval !== 0) {
+        errors.push(
+          `Row ${i + 1}: Shift duration (${durationInMins} mins) must be a multiple of the check-in interval (${interval} mins).`
+        );
+        continue;
+      }
+
       const dateObj = new Date(`${dateStr}T00:00:00Z`);
       const startDateTime = parse(`${dateStr} ${shiftType.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
       let endDateTime = parse(`${dateStr} ${shiftType.endTime}`, 'yyyy-MM-dd HH:mm', new Date());

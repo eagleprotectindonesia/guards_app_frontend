@@ -11,12 +11,13 @@ import PaginationNav from '../../components/pagination-nav';
 import Link from 'next/link';
 import { Pencil, History } from 'lucide-react';
 
-type ShiftTypeWithUpdater = ShiftType & {
+type ShiftTypeWithAdminInfo = ShiftType & {
   lastUpdatedBy?: { name: string } | null;
+  createdBy?: { name: string } | null;
 };
 
 type ShiftTypeListProps = {
-  shiftTypes: Serialized<ShiftTypeWithUpdater>[];
+  shiftTypes: Serialized<ShiftTypeWithAdminInfo>[];
   page: number;
   perPage: number;
   totalCount: number;
@@ -92,8 +93,11 @@ export default function ShiftTypeList({
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
                   End Time
                 </th>
-                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
-                  Last Updated By
+                <th className="py-3 px-6 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">
+                  <div className="flex flex-col">
+                    <span>Created By</span>
+                    <span className="text-gray-400">Updated By</span>
+                  </div>
                 </th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                   Actions
@@ -114,7 +118,14 @@ export default function ShiftTypeList({
                     <td className="py-4 px-6 text-sm text-gray-600 font-mono text-center">{shiftType.startTime}</td>
                     <td className="py-4 px-6 text-sm text-gray-600 font-mono text-center">{shiftType.endTime}</td>
                     <td className="py-4 px-6 text-sm text-gray-500 text-center">
-                      {shiftType.lastUpdatedBy?.name || '-'}
+                      <div className="flex flex-col items-center">
+                        <div className="font-medium text-gray-900" title="Created By">
+                          {shiftType.createdBy?.name || '-'}
+                        </div>
+                        <div className="text-xs text-gray-400" title="Last Updated By">
+                          {shiftType.lastUpdatedBy?.name || '-'}
+                        </div>
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">

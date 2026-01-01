@@ -34,6 +34,8 @@ export async function getPaginatedShifts(params: {
             site: { select: { name: true } },
             shiftType: { select: { name: true, startTime: true, endTime: true } },
             guard: { select: { name: true } },
+            createdBy: { select: { name: true } },
+            lastUpdatedBy: { select: { name: true } },
           },
         }),
         tx.shift.count({ where: finalWhere }),
@@ -63,7 +65,8 @@ export async function createShiftWithChangelog(data: Prisma.ShiftCreateInput, ad
       const createdShift = await tx.shift.create({
         data: {
           ...data,
-          createdBy: adminId,
+          createdById: adminId,
+          lastUpdatedById: adminId,
         },
         include: {
           site: true,
@@ -102,7 +105,10 @@ export async function updateShiftWithChangelog(id: string, data: Prisma.ShiftUpd
     async tx => {
       const updatedShift = await tx.shift.update({
         where: { id, deletedAt: null },
-        data,
+        data: {
+          ...data,
+          lastUpdatedById: adminId,
+        },
         include: {
           site: true,
           shiftType: true,
@@ -150,6 +156,7 @@ export async function deleteShiftWithChangelog(id: string, adminId: string) {
         where: { id },
         data: {
           deletedAt: new Date(),
+          lastUpdatedById: adminId,
         },
       });
 
@@ -177,7 +184,7 @@ export async function bulkCreateShiftsWithChangelog(shiftsToCreate: Prisma.Shift
   return prisma.$transaction(
     async tx => {
       const createdShifts = await tx.shift.createManyAndReturn({
-        data: shiftsToCreate,
+        data: shiftsToCreate.map(s => ({ ...s, lastUpdatedById: adminId })),
         include: {
           site: { select: { name: true } },
           shiftType: { select: { name: true } },

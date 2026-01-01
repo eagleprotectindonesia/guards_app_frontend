@@ -18,12 +18,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import SortableHeader from '@/components/sortable-header';
 import { format } from 'date-fns';
 
-type GuardWithUpdater = Guard & {
+type GuardWithAdminInfo = Guard & {
   lastUpdatedBy?: { name: string } | null;
+  createdBy?: { name: string } | null;
 };
 
 type GuardListProps = {
-  guards: Serialized<GuardWithUpdater>[];
+  guards: Serialized<GuardWithAdminInfo>[];
   page: number;
   perPage: number;
   totalCount: number;
@@ -277,8 +278,11 @@ export default function GuardList({
                   Left Date
                 </th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Note</th>
-                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
-                  Last Updated By
+                <th className="py-3 px-6 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">
+                  <div className="flex flex-col">
+                    <span>Created By</span>
+                    <span className="text-gray-400">Updated By</span>
+                  </div>
                 </th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
                   Actions
@@ -327,7 +331,16 @@ export default function GuardList({
                     <td className="py-4 px-6 text-sm text-gray-500">
                       <div className="max-w-[200px] whitespace-normal wrap-break-words">{guard.note || '-'}</div>
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-500">{guard.lastUpdatedBy?.name || '-'}</td>
+                    <td className="py-4 px-6 text-sm text-gray-500">
+                      <div className="flex flex-col items-center">
+                        <div className="font-medium text-gray-900" title="Created By">
+                          {guard.createdBy?.name || '-'}
+                        </div>
+                        <div className="text-xs text-gray-400" title="Last Updated By">
+                          {guard.lastUpdatedBy?.name || '-'}
+                        </div>
+                      </div>
+                    </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">
                         <Link

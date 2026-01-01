@@ -433,7 +433,7 @@ export async function bulkCreateShifts(
         status: 'scheduled',
         requiredCheckinIntervalMins: interval,
         graceMinutes: grace,
-        createdBy: adminId || null,
+        createdById: adminId || null,
       });
     }
   }

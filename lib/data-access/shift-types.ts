@@ -30,6 +30,11 @@ export async function getShiftTypeById(id: string) {
           name: true,
         },
       },
+      createdBy: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 }
@@ -75,6 +80,7 @@ export async function createShiftTypeWithChangelog(data: Prisma.ShiftTypeCreateI
         data: {
           ...data,
           lastUpdatedById: adminId,
+          createdById: adminId,
           lastUpdatedBy: undefined,
         },
       });

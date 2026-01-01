@@ -42,6 +42,11 @@ export async function getAllGuards(
           name: true,
         },
       },
+      createdBy: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 }
@@ -138,6 +143,7 @@ export async function createGuardWithChangelog(data: Prisma.GuardCreateInput, ad
           ...data,
           status: effectiveStatus,
           lastUpdatedById: adminId,
+          createdById: adminId,
           lastUpdatedBy: undefined,
         },
       });
@@ -354,6 +360,8 @@ export async function bulkCreateGuardsWithChangelog(guardsData: Prisma.GuardCrea
       g.joinDate as Date | string | undefined,
       g.leftDate as Date | string | undefined
     ),
+    createdById: adminId,
+    lastUpdatedById: adminId,
   }));
 
   return prisma.$transaction(

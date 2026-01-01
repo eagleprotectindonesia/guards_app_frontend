@@ -11,12 +11,13 @@ import Link from 'next/link';
 import { Pencil, History, Download } from 'lucide-react';
 import Search from '../../components/search';
 
-type SiteWithUpdater = Site & {
+type SiteWithAdminInfo = Site & {
   lastUpdatedBy?: { name: string } | null;
+  createdBy?: { name: string } | null;
 };
 
 type SiteListProps = {
-  sites: Serialized<SiteWithUpdater>[];
+  sites: Serialized<SiteWithAdminInfo>[];
   page: number;
   perPage: number;
   totalCount: number;
@@ -139,6 +140,12 @@ export default function SiteList({ sites, page, perPage, totalCount, isSuperAdmi
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Longitude</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Note</th>
+                <th className="py-3 px-6 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">
+                  <div className="flex flex-col">
+                    <span>Created By</span>
+                    <span className="text-gray-400">Updated By</span>
+                  </div>
+                </th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                   Actions
                 </th>
@@ -176,6 +183,16 @@ export default function SiteList({ sites, page, perPage, totalCount, isSuperAdmi
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500">
                       <div className="max-w-[200px] whitespace-normal wrap-break-words">{site.note || '-'}</div>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-500 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="font-medium text-gray-900" title="Created By">
+                          {site.createdBy?.name || '-'}
+                        </div>
+                        <div className="text-xs text-gray-400" title="Last Updated By">
+                          {site.lastUpdatedBy?.name || '-'}
+                        </div>
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">

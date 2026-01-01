@@ -11,6 +11,11 @@ export async function getAllSites(includeDeleted = false) {
           name: true,
         },
       },
+      createdBy: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 }
@@ -76,6 +81,7 @@ export async function createSiteWithChangelog(data: Prisma.SiteCreateInput, admi
         data: {
           ...data,
           lastUpdatedById: adminId,
+          createdById: adminId,
           lastUpdatedBy: undefined,
         },
       });

@@ -21,6 +21,8 @@ export type ShiftWithRelations = Shift & {
   shiftType: ShiftType;
   guard: Guard | null;
   attendance: Attendance | null;
+  createdBy?: { name: string } | null;
+  lastUpdatedBy?: { name: string } | null;
 };
 
 type ShiftListProps = {
@@ -245,6 +247,12 @@ export default function ShiftList({
                 </th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Note</th>
+                <th className="py-3 px-6 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">
+                  <div className="flex flex-col">
+                    <span>Created By</span>
+                    <span className="text-gray-400">Updated By</span>
+                  </div>
+                </th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                   Actions
                 </th>
@@ -253,7 +261,7 @@ export default function ShiftList({
             <tbody className="divide-y divide-gray-100">
               {shifts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-gray-500">
+                  <td colSpan={8} className="py-8 text-center text-gray-500">
                     No shifts found. Schedule one to get started.
                   </td>
                 </tr>
@@ -291,6 +299,16 @@ export default function ShiftList({
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500">
                       <div className="max-w-[200px] whitespace-normal wrap-break-words">{shift.note || '-'}</div>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-500 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="font-medium text-gray-900" title="Created By">
+                          {shift.createdBy?.name || '-'}
+                        </div>
+                        <div className="text-xs text-gray-400" title="Last Updated By">
+                          {shift.lastUpdatedBy?.name || '-'}
+                        </div>
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">

@@ -14,7 +14,9 @@ import { ActionState } from '@/types/actions';
 import { Site } from '@prisma/client';
 import { serialize, Serialized } from '@/lib/utils';
 
-export async function getAllSitesForExport(): Promise<Serialized<Site & { lastUpdatedBy?: { name: string } | null }>[]> {
+export async function getAllSitesForExport(): Promise<
+  Serialized<Site & { lastUpdatedBy?: { name: string } | null; createdBy?: { name: string } | null }>[]
+> {
   const sites = await getAllSites(true);
   return serialize(sites);
 }

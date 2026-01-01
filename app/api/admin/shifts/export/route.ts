@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
         'Check-In Status',
         'Grace Minutes',
         'Required Checkin Interval (mins)',
+        'Created By',
+        'Created At',
         'Deleted At',
       ];
       controller.enqueue(encoder.encode(headers.join(',') + '\n'));
@@ -70,7 +72,12 @@ export async function GET(request: NextRequest) {
           let chunk = '';
           for (const shift of batch) {
             // Casting to include relations to satisfy TS if needed
-            const s = shift as Shift & { site: Site; shiftType: ShiftType; guard: Guard | null };
+            const s = shift as Shift & {
+              site: Site;
+              shiftType: ShiftType;
+              guard: Guard | null;
+              createdBy: { name: string } | null;
+            };
 
             const siteName = s.site.name;
             const shiftTypeName = s.shiftType.name;
@@ -79,6 +86,8 @@ export async function GET(request: NextRequest) {
             const startTime = new Date(s.startsAt).toLocaleTimeString();
             const endTime = new Date(s.endsAt).toLocaleTimeString();
             const checkInStatus = s.checkInStatus || '';
+            const createdBy = s.createdBy?.name || 'System';
+            const createdAt = new Date(s.createdAt).toLocaleString();
             const deletedAt = s.deletedAt ? new Date(s.deletedAt).toLocaleString() : '';
 
             // Escape quotes in CSV fields: " -> ""
@@ -97,6 +106,8 @@ export async function GET(request: NextRequest) {
                 checkInStatus,
                 s.graceMinutes,
                 s.requiredCheckinIntervalMins,
+                escape(createdBy),
+                escape(createdAt),
                 escape(deletedAt),
               ].join(',') + '\n';
           }

@@ -26,7 +26,9 @@ import { getAdminIdFromToken } from '@/lib/admin-auth';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 import { ActionState } from '@/types/actions';
 
-export async function getAllGuardsForExport(): Promise<Serialized<Guard & { lastUpdatedBy?: { name: string } | null }>[]> {
+export async function getAllGuardsForExport(): Promise<
+  Serialized<Guard & { lastUpdatedBy?: { name: string } | null; createdBy?: { name: string } | null }>[]
+> {
   const guards = await getAllGuards(undefined, true);
   return serialize(guards);
 }
@@ -73,7 +75,6 @@ export async function createGuard(
     const dataToCreate = {
       ...restData,
       hashedPassword: await hashPassword(password),
-      lastUpdatedById: adminId,
     };
 
     await createGuardWithChangelog(dataToCreate, adminId!);
@@ -251,6 +252,9 @@ export async function bulkCreateGuards(
   const guardsToCreate: Prisma.GuardCreateManyInput[] = [];
   const phonesToCheck: string[] = [];
   const idsToCheck: string[] = [];
+  const phoneToRow = new Map<string, number>();
+  const idToRow = new Map<string, number>();
+  const guardCodeToRow = new Map<string, number>();
 
   // Skip header row
   const startRow = 1;
@@ -389,8 +393,18 @@ export async function bulkCreateGuards(
       continue;
     }
 
+    if (guardCodeValue) {
+      if (guardCodeToRow.has(guardCodeValue)) {
+        errors.push(`Row ${i + 1}: Duplicate guard code '${guardCodeValue}' in file.`);
+        continue;
+      }
+      guardCodeToRow.set(guardCodeValue, i + 1);
+    }
+
     phonesToCheck.push(phone);
     idsToCheck.push(id);
+    phoneToRow.set(phone, i + 1);
+    idToRow.set(id, i + 1);
 
     // Hash the password for this specific guard
     const hashedPasswordForGuard = await hashPassword(validationResult.data.password);
@@ -424,10 +438,12 @@ export async function bulkCreateGuards(
       const existingErrors: string[] = [];
       existingGuards.forEach(g => {
         if (phonesToCheck.includes(g.phone)) {
-          existingErrors.push(`Phone '${g.phone}' is already registered.`);
+          const row = phoneToRow.get(g.phone);
+          existingErrors.push(`Row ${row}: Phone '${g.phone}' is already registered.`);
         }
         if (idsToCheck.includes(g.id)) {
-          existingErrors.push(`Guard ID '${g.id}' is already registered.`);
+          const row = idToRow.get(g.id);
+          existingErrors.push(`Row ${row}: Guard ID '${g.id}' is already registered.`);
         }
       });
       return {
@@ -452,8 +468,12 @@ export async function bulkCreateGuards(
         return { success: false, message: 'Duplicate guard codes found within the uploaded file for active guards.' };
       }
       if (error.message.startsWith('DUPLICATE_GUARD_CODE:')) {
-        const code = error.message.split(':')[1];
-        return { success: false, message: `Guard code '${code}' is already in use by another active guard in the system.` };
+        const parts = error.message.split(':');
+        const code = parts[1];
+        const conflictId = parts[2];
+        const row = guardCodeToRow.get(code);
+        const rowPrefix = row ? `Row ${row}: ` : '';
+        return { success: false, message: `${rowPrefix}Guard code '${code}' is already in use by another active guard (ID: ${conflictId}).` };
       }
     }
     console.error('Bulk Create Error:', error);

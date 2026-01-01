@@ -54,6 +54,8 @@ export default function SiteList({ sites, page, perPage, totalCount, isSuperAdmi
         'Longitude',
         'Status',
         'Note',
+        'Created By',
+        'Created At',
         'Last Updated By',
         'Deleted At',
       ];
@@ -68,6 +70,8 @@ export default function SiteList({ sites, page, perPage, totalCount, isSuperAdmi
             site.longitude !== null && site.longitude !== undefined ? site.longitude.toString() : '',
             site.status ? 'Active' : 'Inactive',
             `"${site.note ? site.note.replace(/"/g, '""') : ''}"`,
+            `"${site.createdBy?.name || ''}"`,
+            `"${new Date(site.createdAt).toLocaleString()}"`,
             `"${site.lastUpdatedBy?.name || ''}"`,
             `"${site.deletedAt ? new Date(site.deletedAt).toLocaleString() : ''}"`,
           ].join(',');

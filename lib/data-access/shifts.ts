@@ -226,6 +226,7 @@ export async function getExportShiftsBatch(params: { where: Prisma.ShiftWhereInp
       site: true,
       shiftType: true,
       guard: true,
+      createdBy: { select: { name: true } },
     },
     ...(cursor && { skip: 1, cursor: { id: cursor } }),
   });

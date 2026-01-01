@@ -125,6 +125,8 @@ export default function GuardList({
         'Joined Date',
         'Left Date',
         'Note',
+        'Created By',
+        'Created At',
         'Last Updated By',
         'Deleted At',
       ];
@@ -141,6 +143,8 @@ export default function GuardList({
             `"${guard.joinDate ? new Date(guard.joinDate).toLocaleDateString() : ''}"`,
             `"${guard.leftDate ? new Date(guard.leftDate).toLocaleDateString() : ''}"`,
             `"${guard.note ? guard.note.replace(/"/g, '""') : ''}"`,
+            `"${guard.createdBy?.name || ''}"`,
+            `"${new Date(guard.createdAt).toLocaleString()}"`,
             `"${guard.lastUpdatedBy?.name || ''}"`,
             `"${guard.deletedAt ? new Date(guard.deletedAt).toLocaleString() : ''}"`,
           ].join(',');

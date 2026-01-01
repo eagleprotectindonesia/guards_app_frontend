@@ -85,6 +85,7 @@ export async function createSiteWithChangelog(data: Prisma.SiteCreateInput, admi
             address: createdSite.address,
             latitude: createdSite.latitude,
             longitude: createdSite.longitude,
+            note: createdSite.note,
           },
         },
       });
@@ -119,6 +120,7 @@ export async function updateSiteWithChangelog(id: string, data: Prisma.SiteUpdat
             address: data.address ? updatedSite.address : undefined,
             latitude: data.latitude ? updatedSite.latitude : undefined,
             longitude: data.longitude ? updatedSite.longitude : undefined,
+            note: data.note !== undefined ? updatedSite.note : undefined,
           },
         },
       });

@@ -30,6 +30,7 @@ export async function createShift(
     date: formData.get('date'),
     requiredCheckinIntervalMins: Number(formData.get('requiredCheckinIntervalMins')),
     graceMinutes: Number(formData.get('graceMinutes')),
+    note: formData.get('note') as string | null,
   });
 
   if (!validatedFields.success) {
@@ -40,7 +41,7 @@ export async function createShift(
     };
   }
 
-  const { date, shiftTypeId, siteId, guardId, requiredCheckinIntervalMins, graceMinutes } = validatedFields.data;
+  const { date, shiftTypeId, siteId, guardId, requiredCheckinIntervalMins, graceMinutes, note } = validatedFields.data;
 
   try {
     // Fetch ShiftType to calculate startsAt and endsAt
@@ -111,6 +112,7 @@ export async function createShift(
         endsAt: endDateTime,
         requiredCheckinIntervalMins,
         graceMinutes,
+        note,
         status: 'scheduled',
       },
       adminId
@@ -140,6 +142,7 @@ export async function updateShift(
     date: formData.get('date'),
     requiredCheckinIntervalMins: Number(formData.get('requiredCheckinIntervalMins')),
     graceMinutes: Number(formData.get('graceMinutes')),
+    note: formData.get('note') as string | null,
   });
 
   if (!validatedFields.success) {
@@ -150,7 +153,7 @@ export async function updateShift(
     };
   }
 
-  const { date, shiftTypeId, siteId, guardId, requiredCheckinIntervalMins, graceMinutes } = validatedFields.data;
+  const { date, shiftTypeId, siteId, guardId, requiredCheckinIntervalMins, graceMinutes, note } = validatedFields.data;
 
   try {
     const shiftType = await prisma.shiftType.findUnique({
@@ -207,6 +210,7 @@ export async function updateShift(
         endsAt: endDateTime,
         requiredCheckinIntervalMins,
         graceMinutes,
+        note,
       },
       adminId
     );
@@ -234,14 +238,14 @@ export async function deleteShift(id: string) {
   }
 }
 
-export async function cancelShift(id: string) {
+export async function cancelShift(id: string, cancelNote?: string) {
   try {
     const adminId = await getAdminIdFromToken();
 
     // Validate that the shift exists and is in_progress
     const shift = await prisma.shift.findUnique({
       where: { id, deletedAt: null },
-      select: { status: true },
+      select: { status: true, note: true },
     });
 
     if (!shift) {
@@ -252,7 +256,14 @@ export async function cancelShift(id: string) {
       return { success: false, message: 'Only in-progress shifts can be cancelled' };
     }
 
-    await updateShiftWithChangelog(id, { status: ShiftStatus.cancelled }, adminId);
+    let updatedNote = shift.note;
+    if (cancelNote?.trim()) {
+      const timestamp = new Date().toLocaleString();
+      const formattedCancelNote = `[Cancelled on ${timestamp}]: ${cancelNote.trim()}`;
+      updatedNote = updatedNote ? `${formattedCancelNote}\n\n${updatedNote}` : formattedCancelNote;
+    }
+
+    await updateShiftWithChangelog(id, { status: ShiftStatus.cancelled, note: updatedNote }, adminId);
     revalidatePath('/admin/shifts');
     return { success: true };
   } catch (error) {

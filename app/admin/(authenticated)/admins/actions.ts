@@ -30,6 +30,7 @@ export async function createAdmin(
     email: formData.get('email'),
     password: formData.get('password'),
     role: formData.get('role'),
+    note: formData.get('note'),
   });
 
   if (!validatedFields.success) {
@@ -40,7 +41,7 @@ export async function createAdmin(
     };
   }
 
-  const { name, email, password, role } = validatedFields.data;
+  const { name, email, password, role, note } = validatedFields.data;
 
   try {
     const existingAdmin = await findAdminByEmail(email);
@@ -61,6 +62,7 @@ export async function createAdmin(
         email,
         hashedPassword,
         role: role,
+        note: note || null,
       },
       currentAdmin.id
     );
@@ -95,6 +97,7 @@ export async function updateAdmin(
     name: formData.get('name'),
     email: formData.get('email'),
     role: formData.get('role'),
+    note: formData.get('note'),
     ...(password && typeof password === 'string' && password.length > 0 && { password }),
   };
 
@@ -108,7 +111,7 @@ export async function updateAdmin(
     };
   }
 
-  const { name, email, role, password: newPassword } = validatedFields.data;
+  const { name, email, role, note, password: newPassword } = validatedFields.data;
 
   try {
     // Check if email is taken by another admin
@@ -126,6 +129,7 @@ export async function updateAdmin(
       name,
       email,
       role,
+      note: note || null,
       ...(newPassword && {
         hashedPassword: await bcrypt.hash(newPassword, 10),
         tokenVersion: { increment: 1 },

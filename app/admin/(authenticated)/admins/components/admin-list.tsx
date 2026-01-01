@@ -93,8 +93,10 @@ export default function AdminList({ admins, page, perPage, totalCount }: AdminLi
                         {admin.role || 'admin'}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-500 max-w-xs truncate">
-                      {admin.note || '-'}
+                    <td className="py-4 px-6 text-sm text-gray-500">
+                      <div className="max-w-[200px] whitespace-normal wrap-break-words">
+                        {admin.note || '-'}
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">

@@ -262,9 +262,7 @@ export default function GuardList({
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
                   Left Date
                 </th>
-                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
-                  Note
-                </th>
+                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Note</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">
                   Last Updated By
                 </th>
@@ -316,8 +314,8 @@ export default function GuardList({
                     <td className="py-4 px-6 text-sm text-gray-500">
                       {guard.leftDate ? new Date(guard.leftDate).toLocaleDateString() : '-'}
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-500 max-w-xs truncate">
-                      {guard.note || '-'}
+                    <td className="py-4 px-6 text-sm text-gray-500">
+                      <div className="max-w-[200px] whitespace-normal wrap-break-words">{guard.note || '-'}</div>
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500">{guard.lastUpdatedBy?.name || '-'}</td>
                     <td className="py-4 px-6 text-right">

@@ -1,13 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import Modal from '../../components/modal';
-import { Trash2, XCircle } from 'lucide-react';
+import { Trash2, XCircle, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 type ShiftActionModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onDelete: () => void;
-  onCancelShift: () => void;
+  onCancelShift: (note?: string) => void;
   isPending?: boolean;
   isSuperAdmin?: boolean;
   status?: string;
@@ -22,56 +26,116 @@ export default function ShiftActionModal({
   isSuperAdmin = false,
   status,
 }: ShiftActionModalProps) {
+  const [selectedAction, setSelectedAction] = useState<string | null>(null);
+  const [cancelNote, setCancelNote] = useState('');
   const canCancel = status === 'in_progress';
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Shift Actions">
-      <div className="p-6">
-        <p className="text-sm text-gray-600 mb-6">
-          {isSuperAdmin 
-            ? "What would you like to do with this shift? You can either cancel it (keep record) or delete it permanently."
-            : "Would you like to cancel this shift? This will mark the shift as cancelled while keeping a record of it for audit purposes."
-          }
-        </p>
+  const handleConfirm = () => {
+    if (selectedAction === 'cancel') {
+      onCancelShift(cancelNote);
+    } else if (selectedAction === 'delete') {
+      onDelete();
+    }
+  };
 
-        <div className="flex flex-col gap-3">
-          {canCancel && (
-            <button
-              type="button"
-              onClick={onCancelShift}
-              disabled={isPending}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <XCircle className="w-4 h-4 text-slate-500" />
-              Cancel Shift (Change Status)
-            </button>
-          )}
-          
-          {isSuperAdmin && (
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={isPending}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-red-50 text-red-700 font-semibold text-sm hover:bg-red-100 transition-colors disabled:opacity-50"
-            >
-              <Trash2 className="w-4 h-4 text-red-600" />
-              Delete Shift Permanently
-            </button>
-          )}
+  const handleClose = () => {
+    setSelectedAction(null);
+    setCancelNote('');
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose} title="Shift Actions">
+      <div className="p-6">
+        <p className="text-sm text-gray-600 mb-6">Choose an action to perform on this shift.</p>
+
+        <div className="space-y-6">
+          <RadioGroup value={selectedAction || ''} onValueChange={setSelectedAction} className="gap-4">
+            {canCancel && (
+              <div
+                className={`flex items-start gap-3 p-4 rounded-lg border transition-all cursor-pointer ${
+                  selectedAction === 'cancel' ? 'border-red-200 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => setSelectedAction('cancel')}
+              >
+                <RadioGroupItem value="cancel" id="cancel" className="mt-1" />
+                <Label htmlFor="cancel" className="flex flex-col gap-1 cursor-pointer flex-1">
+                  <span className="font-semibold text-gray-900 flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-red-500" />
+                    Cancel Shift
+                  </span>
+                  <span className="text-xs text-gray-500 font-normal">
+                    Mark as cancelled but keep for audit records.
+                  </span>
+                </Label>
+              </div>
+            )}
+
+            {isSuperAdmin && (
+              <div
+                className={`flex items-start gap-3 p-4 rounded-lg border transition-all cursor-pointer ${
+                  selectedAction === 'delete' ? 'border-red-200 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => setSelectedAction('delete')}
+              >
+                <RadioGroupItem value="delete" id="delete" className="mt-1" />
+                <Label htmlFor="delete" className="flex flex-col gap-1 cursor-pointer flex-1">
+                  <span className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                    Delete Permanently
+                  </span>
+                  <span className="text-xs text-gray-500 font-normal">
+                    Completely remove this shift record. This cannot be undone.
+                  </span>
+                </Label>
+              </div>
+            )}
+          </RadioGroup>
 
           {!canCancel && !isSuperAdmin && (
-            <div className="p-4 bg-yellow-50 text-yellow-700 rounded-lg text-sm mb-2">
-              Only in-progress shifts can be cancelled.
+            <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-lg flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0" />
+              <p className="text-sm text-yellow-700">
+                Only in-progress shifts can be cancelled. Since you are not a Super Admin, you cannot delete this shift.
+              </p>
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="mt-2 px-4 py-2 text-gray-500 text-sm hover:text-gray-700 transition-colors"
-          >
-            Go Back
-          </button>
+          {selectedAction === 'cancel' && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              <label htmlFor="cancelNote" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Cancellation Note (Optional)
+              </label>
+              <textarea
+                id="cancelNote"
+                rows={3}
+                className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all resize-none"
+                placeholder="Enter reason for cancellation..."
+                value={cancelNote}
+                onChange={e => setCancelNote(e.target.value)}
+                disabled={isPending}
+              />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              onClick={handleConfirm}
+              disabled={!selectedAction || isPending}
+              variant={selectedAction === 'delete' ? 'destructive' : 'default'}
+              className="w-full h-11"
+            >
+              {isPending ? 'Processing...' : 'Confirm Action'}
+            </Button>
+
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 text-gray-500 text-sm hover:text-gray-700 transition-colors w-full"
+            >
+              Go Back
+            </button>
+          </div>
         </div>
       </div>
     </Modal>

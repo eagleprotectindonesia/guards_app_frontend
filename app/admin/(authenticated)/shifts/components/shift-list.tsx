@@ -87,11 +87,11 @@ export default function ShiftList({
     });
   };
 
-  const handleCancelShift = () => {
+  const handleCancelShift = (note?: string) => {
     if (!selectedShiftId) return;
 
     startTransition(async () => {
-      const result = await cancelShift(selectedShiftId);
+      const result = await cancelShift(selectedShiftId, note);
       if (result.success) {
         toast.success('Shift cancelled successfully!');
         setSelectedShiftId(null);
@@ -289,8 +289,8 @@ export default function ShiftList({
                         {shift.status.replace('_', ' ').toUpperCase()}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-500 max-w-xs truncate">
-                      {shift.note || '-'}
+                    <td className="py-4 px-6 text-sm text-gray-500">
+                      <div className="max-w-[200px] whitespace-normal wrap-break-words">{shift.note || '-'}</div>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">
@@ -305,7 +305,11 @@ export default function ShiftList({
                         <DeleteButton
                           onClick={() => handleDeleteClick(shift.id)}
                           disabled={isPending || (!isSuperAdmin && shift.status !== 'in_progress')}
-                          title={!isSuperAdmin && shift.status !== 'in_progress' ? 'Only in-progress shifts can be cancelled' : 'Actions'}
+                          title={
+                            !isSuperAdmin && shift.status !== 'in_progress'
+                              ? 'Only in-progress shifts can be cancelled'
+                              : 'Actions'
+                          }
                         />
                       </div>
                     </td>

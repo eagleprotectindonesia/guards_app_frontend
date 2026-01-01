@@ -120,8 +120,8 @@ export default function SiteList({ sites, page, perPage, totalCount, isSuperAdmi
                         {site.status ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-500 max-w-xs truncate">
-                      {site.note || '-'}
+                    <td className="py-4 px-6 text-sm text-gray-500">
+                      <div className="max-w-[200px] whitespace-normal wrap-break-words">{site.note || '-'}</div>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">

@@ -65,6 +65,7 @@ export async function createAdminWithChangelog(data: Prisma.AdminCreateInput, cr
             name: createdAdmin.name,
             email: createdAdmin.email,
             role: createdAdmin.role,
+            note: createdAdmin.note,
           },
         },
       });
@@ -93,6 +94,7 @@ export async function updateAdminWithChangelog(id: string, data: Prisma.AdminUpd
             name: data.name ? updatedAdmin.name : undefined,
             email: data.email ? updatedAdmin.email : undefined,
             role: data.role ? updatedAdmin.role : undefined,
+            note: data.note !== undefined ? updatedAdmin.note : undefined,
             passwordChanged: !!data.hashedPassword,
           },
         },

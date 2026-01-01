@@ -65,7 +65,7 @@ export default function AlertItem({ alert, onAcknowledge, onResolve, showResolut
                 {isNeedAttention ? 'ATTENTION NEEDED' : alert.reason.replace('_', ' ')}
               </span>
               <span className="text-xs text-gray-400 font-mono">
-                {new Date(alert.windowStart).toLocaleTimeString()}
+                {new Date(alert.windowStart).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
               </span>
             </div>
 

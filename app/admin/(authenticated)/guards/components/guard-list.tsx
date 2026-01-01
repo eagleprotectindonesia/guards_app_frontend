@@ -319,11 +319,7 @@ export default function GuardList({
                       )}
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500">
-                      {new Date(guard.joinDate || guard.createdAt).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {new Date(guard.joinDate || guard.createdAt).toLocaleDateString()}
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500">
                       {guard.leftDate ? new Date(guard.leftDate).toLocaleDateString() : '-'}

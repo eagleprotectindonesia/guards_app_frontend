@@ -275,7 +275,7 @@ export default function ShiftList({
                       )}
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-600">
-                      <div className="font-medium">{format(new Date(shift.startsAt), 'MMM d, yyyy')}</div>
+                      <div className="font-medium">{new Date(shift.startsAt).toLocaleDateString()}</div>
                       <div className="text-xs text-gray-500">
                         {format(new Date(shift.startsAt), 'HH:mm')} - {format(new Date(shift.endsAt), 'HH:mm')}
                       </div>

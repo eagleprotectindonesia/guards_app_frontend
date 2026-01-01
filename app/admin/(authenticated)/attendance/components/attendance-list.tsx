@@ -159,7 +159,7 @@ export default function AttendanceList({
                       {attendance.shift.shiftType.name}
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500">
-                      {format(new Date(attendance.shift.date), 'MMM d, yyyy')}
+                      {new Date(attendance.shift.date).toLocaleDateString()}
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-900 font-medium">
                       <div className="flex items-center gap-2">

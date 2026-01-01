@@ -1,7 +1,7 @@
 {
-  "name": "Eagle Protect Guard",
-  "short_name": "EP Guard",
-  "description": "Aplikasi jadwal dan absensi guard",
+  "name": "Eagle Protect Employee App",
+  "short_name": "EP Employee",
+  "description": "Aplikasi jadwal dan absensi karyawan Eagle Protect",
   "start_url": "/guard/login",
   "scope": "/guard/",
   "display": "standalone",

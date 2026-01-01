@@ -48,10 +48,23 @@ export function DatePicker({
       <PopoverTrigger asChild>
         <Button
           variant={'outline'}
-          className={cn('w-full justify-start text-left font-normal', !date && 'text-muted-foreground', className)}
+          className={cn(
+            'w-full justify-start text-left font-normal relative pr-10',
+            !date && 'text-muted-foreground',
+            className
+          )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {date ? format(date, 'PPP') : <span>{placeholder}</span>}
+          {date && (
+            <div
+              role="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded-md transition-colors"
+              onClick={handleClear}
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 flex flex-col" align="start">
@@ -63,19 +76,6 @@ export function DatePicker({
           toDate={maxDate}
           initialFocus
         />
-        {date && (
-          <div className="p-2 border-t border-gray-100">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full h-8 text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50"
-              onClick={handleClear}
-            >
-              <X className="mr-2 h-3 w-3" />
-              Clear Selection
-            </Button>
-          </div>
-        )}
       </PopoverContent>
     </Popover>
   );

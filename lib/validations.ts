@@ -11,6 +11,7 @@ export const createSiteSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   status: z.boolean().optional(),
+  note: z.string().optional(),
 });
 
 // --- Admin ---
@@ -19,6 +20,7 @@ export const createAdminSchema = z.object({
   email: z.email(),
   password: z.string().min(6, 'Password must be at least 6 characters long'),
   role: z.enum(['superadmin', 'admin']),
+  note: z.string().optional(),
 });
 
 export const updateAdminSchema = z.object({
@@ -26,6 +28,7 @@ export const updateAdminSchema = z.object({
   email: z.email(),
   password: z.string().min(6, 'Password must be at least 6 characters long').optional(),
   role: z.enum(['superadmin', 'admin']),
+  note: z.string().optional(),
 });
 
 // --- Guard ---
@@ -133,6 +136,7 @@ export const createShiftSchema = z.object({
   date: z.iso.date(), // Expects "YYYY-MM-DD"
   requiredCheckinIntervalMins: z.number().int().min(5).default(60),
   graceMinutes: z.number().int().min(1).default(15),
+  note: z.string().optional(),
 });
 
 // --- Checkin ---

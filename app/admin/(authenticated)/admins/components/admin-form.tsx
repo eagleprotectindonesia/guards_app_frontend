@@ -99,6 +99,22 @@ export default function AdminForm({ admin }: Props) {
           {state.errors?.password && <p className="text-red-500 text-xs mt-1">{state.errors.password[0]}</p>}
         </div>
 
+        {/* Note Field */}
+        <div>
+          <label htmlFor="note" className="block font-medium text-gray-700 mb-1">
+            Note
+          </label>
+          <textarea
+            name="note"
+            id="note"
+            defaultValue={admin?.note || ''}
+            rows={3}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
+            placeholder="Add any additional information..."
+          />
+          {state.errors?.note && <p className="text-red-500 text-xs mt-1">{state.errors.note[0]}</p>}
+        </div>
+
         {/* Error Message */}
         {state.message && !state.success && (
           <div className="p-3 rounded bg-red-50 text-red-600 text-sm">{state.message}</div>

@@ -84,8 +84,7 @@ export default function SiteList({ sites, page, perPage, totalCount, isSuperAdmi
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Latitude</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Longitude</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Created At</th>
-                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Last Updated By</th>
+                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Note</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                   Actions
                 </th>
@@ -94,7 +93,7 @@ export default function SiteList({ sites, page, perPage, totalCount, isSuperAdmi
             <tbody className="divide-y divide-gray-100">
               {sites.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-gray-500">
+                  <td colSpan={8} className="py-8 text-center text-gray-500">
                     No sites found. Create one to get started.
                   </td>
                 </tr>
@@ -121,14 +120,9 @@ export default function SiteList({ sites, page, perPage, totalCount, isSuperAdmi
                         {site.status ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-500">
-                      {new Date(site.createdAt).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                    <td className="py-4 px-6 text-sm text-gray-500 max-w-xs truncate">
+                      {site.note || '-'}
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-500">{site.lastUpdatedBy?.name || '-'}</td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">
                         <Link

@@ -21,6 +21,7 @@ model Admin {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   deletedAt          DateTime? @map("deleted_at")
+  note               String?   @db.Text
   acknowledgedAlerts Alert[]   @relation("AcknowledgedBy")
   resolvedAlerts     Alert[]   @relation("ResolvedBy")
   updatedGuards      Guard[]   @relation("GuardLastUpdatedBy")
@@ -71,6 +72,7 @@ model Guard {
 
   @@index([status])
   @@index([deletedAt])
+  @@index([guardCode])
   @@map("guards")
 }
 
@@ -86,6 +88,7 @@ model Site {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   deletedAt       DateTime? @map("deleted_at")
+  note            String?  @db.Text
   alerts          Alert[]
   shifts          Shift[]
   lastUpdatedBy   Admin?   @relation("SiteLastUpdatedBy", fields: [lastUpdatedById], references: [id])
@@ -129,6 +132,7 @@ model Shift {
   createdAt                   DateTime       @default(now()) @map("created_at")
   updatedAt                   DateTime       @updatedAt
   deletedAt                   DateTime?      @map("deleted_at")
+  note                        String?        @db.Text
   alerts                      Alert[]
   checkins                    Checkin[]
   guard                       Guard?         @relation(fields: [guardId], references: [id])

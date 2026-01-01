@@ -244,6 +244,7 @@ export default function ShiftList({
                   </div>
                 </th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Note</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                   Actions
                 </th>
@@ -252,7 +253,7 @@ export default function ShiftList({
             <tbody className="divide-y divide-gray-100">
               {shifts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500">
+                  <td colSpan={7} className="py-8 text-center text-gray-500">
                     No shifts found. Schedule one to get started.
                   </td>
                 </tr>
@@ -287,6 +288,9 @@ export default function ShiftList({
                       >
                         {shift.status.replace('_', ' ').toUpperCase()}
                       </span>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-500 max-w-xs truncate">
+                      {shift.note || '-'}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">

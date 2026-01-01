@@ -66,6 +66,7 @@ export default function AdminList({ admins, page, perPage, totalCount }: AdminLi
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Note</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                   Actions
                 </th>
@@ -74,7 +75,7 @@ export default function AdminList({ admins, page, perPage, totalCount }: AdminLi
             <tbody className="divide-y divide-gray-100">
               {admins.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-500">
+                  <td colSpan={5} className="py-8 text-center text-gray-500">
                     No admins found. Add one to get started.
                   </td>
                 </tr>
@@ -91,6 +92,9 @@ export default function AdminList({ admins, page, perPage, totalCount }: AdminLi
                       >
                         {admin.role || 'admin'}
                       </span>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-500 max-w-xs truncate">
+                      {admin.note || '-'}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-100">

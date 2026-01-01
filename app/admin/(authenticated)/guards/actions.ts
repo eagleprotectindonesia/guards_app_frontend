@@ -78,6 +78,14 @@ export async function createGuard(
 
     await createGuardWithChangelog(dataToCreate, adminId!);
   } catch (error) {
+    if (error instanceof Error && error.message.startsWith('DUPLICATE_GUARD_CODE')) {
+      const parts = error.message.split(':');
+      const conflictId = parts[1];
+      return {
+        message: `This guard code is already in use by another active guard (ID: ${conflictId}).`,
+        success: false,
+      };
+    }
     if (error instanceof PrismaClientKnownRequestError) {
       // Check for unique constraint violation
       if (error.code === 'P2002') {
@@ -140,6 +148,14 @@ export async function updateGuard(
   try {
     await updateGuardWithChangelog(id, validatedFields.data, adminId!);
   } catch (error) {
+    if (error instanceof Error && error.message.startsWith('DUPLICATE_GUARD_CODE')) {
+      const parts = error.message.split(':');
+      const conflictId = parts[1];
+      return {
+        message: `This guard code is already in use by another active guard (ID: ${conflictId}).`,
+        success: false,
+      };
+    }
     if (error instanceof PrismaClientKnownRequestError) {
       if (error.code === 'P2002') {
         const meta = error.meta as PrismaUniqueConstraintMeta;
@@ -431,6 +447,15 @@ export async function bulkCreateGuards(
     revalidatePath('/admin/guards');
     return { success: true, message: `Successfully created ${guardsToCreate.length} guards.` };
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'DUPLICATE_GUARD_CODE_IN_BATCH') {
+        return { success: false, message: 'Duplicate guard codes found within the uploaded file for active guards.' };
+      }
+      if (error.message.startsWith('DUPLICATE_GUARD_CODE:')) {
+        const code = error.message.split(':')[1];
+        return { success: false, message: `Guard code '${code}' is already in use by another active guard in the system.` };
+      }
+    }
     console.error('Bulk Create Error:', error);
     return { success: false, message: 'Database error during bulk creation.' };
   }

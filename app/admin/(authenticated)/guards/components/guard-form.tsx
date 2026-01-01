@@ -125,6 +125,7 @@ export default function GuardForm({ guard }: Props) {
                   defaultValue={field.value as E164Number}
                   onChange={field.onChange}
                   placeholder="e.g. +62550123456"
+                  maxLength={18}
                 />
               )}
             />

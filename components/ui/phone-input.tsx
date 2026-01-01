@@ -13,6 +13,7 @@ interface PhoneInputProps {
   className?: string;
   placeholder?: string;
   required?: boolean;
+  maxLength?: number;
 }
 
 const PhoneInput: React.FC<PhoneInputProps> = ({
@@ -23,6 +24,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
   className,
   placeholder,
   required,
+  maxLength,
 }) => {
   const [value, setValue] = useState<Value | undefined>(defaultValue);
 
@@ -56,6 +58,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
         className={`w-full h-10 px-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all ${className}`}
         defaultCountry={defaultCountry}
         required={required}
+        maxLength={maxLength}
       />
       {/* Hidden input to submit the clean E164 number */}
       <input type="hidden" name={inputName} value={value || ''} required={required} />

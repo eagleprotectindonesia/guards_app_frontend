@@ -108,6 +108,21 @@ export async function createGuardWithChangelog(data: Prisma.GuardCreateInput, ad
 
   return prisma.$transaction(
     async tx => {
+      if (data.guardCode && effectiveStatus) {
+        const existing = await tx.guard.findFirst({
+          where: {
+            guardCode: data.guardCode,
+            status: true,
+            deletedAt: null,
+          },
+          select: { id: true },
+        });
+
+        if (existing) {
+          throw new Error(`DUPLICATE_GUARD_CODE:${existing.id}`);
+        }
+      }
+
       const createdGuard = await tx.guard.create({
         data: {
           ...data,
@@ -175,6 +190,22 @@ export async function updateGuardWithChangelog(id: string, data: Prisma.GuardUpd
 
       if (effectiveStatus === false) {
         updateData.tokenVersion = { increment: 1 };
+      }
+
+      if (updateData.guardCode && effectiveStatus) {
+        const existing = await tx.guard.findFirst({
+          where: {
+            guardCode: updateData.guardCode as string,
+            status: true,
+            deletedAt: null,
+            NOT: { id },
+          },
+          select: { id: true },
+        });
+
+        if (existing) {
+          throw new Error(`DUPLICATE_GUARD_CODE:${existing.id}`);
+        }
       }
 
       const updatedGuard = await tx.guard.update({
@@ -317,6 +348,31 @@ export async function bulkCreateGuardsWithChangelog(guardsData: Prisma.GuardCrea
 
   return prisma.$transaction(
     async tx => {
+      // Check for duplicate guard codes in the batch
+      const activeGuardCodes = finalData
+        .filter(g => g.guardCode && g.status === true)
+        .map(g => g.guardCode as string);
+
+      if (new Set(activeGuardCodes).size !== activeGuardCodes.length) {
+        throw new Error('DUPLICATE_GUARD_CODE_IN_BATCH');
+      }
+
+      // Check against existing active guards in DB
+      if (activeGuardCodes.length > 0) {
+        const existing = await tx.guard.findFirst({
+          where: {
+            guardCode: { in: activeGuardCodes },
+            status: true,
+            deletedAt: null,
+          },
+          select: { guardCode: true, id: true },
+        });
+
+        if (existing) {
+          throw new Error(`DUPLICATE_GUARD_CODE:${existing.guardCode}:${existing.id}`);
+        }
+      }
+
       const createdGuards = await tx.guard.createManyAndReturn({
         data: finalData,
         select: {

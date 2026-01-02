@@ -1,10 +1,10 @@
-import { prisma } from '@/lib/prisma';
 import { serialize, getPaginationParams, Serialized } from '@/lib/utils';
 import AttendanceList, { AttendanceWithRelations } from './components/attendance-list';
 import { Suspense } from 'react';
 import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay } from 'date-fns';
 import { getAllGuards } from '@/lib/data-access/guards';
+import { getPaginatedAttendance } from '@/lib/data-access/attendance';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,23 +38,13 @@ export default async function AttendancePage(props: AttendancePageProps) {
     }
   }
 
-  const [attendances, totalCount, guards] = await Promise.all([
-    prisma.attendance.findMany({
+  const [{ attendances, totalCount }, guards] = await Promise.all([
+    getPaginatedAttendance({
       where,
       orderBy: { recordedAt: 'desc' },
       skip,
       take: perPage,
-      include: {
-        shift: {
-          include: {
-            site: true,
-            shiftType: true,
-          },
-        },
-        guard: true, // Include guard directly using the new field
-      },
     }),
-    prisma.attendance.count({ where }),
     getAllGuards({ name: 'asc' }),
   ]);
 

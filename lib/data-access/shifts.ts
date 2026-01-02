@@ -1,10 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
-export async function getShiftById(id: string) {
+export async function getShiftById(id: string, include?: Prisma.ShiftInclude) {
   return prisma.shift.findUnique({
     where: { id, deletedAt: null },
-    include: {
+    include: include || {
       site: true,
       shiftType: true,
       guard: true,

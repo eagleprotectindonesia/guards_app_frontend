@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { Checkin, Guard, Prisma, Shift, Site } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay, format } from 'date-fns';
+import { getCheckinExportBatch } from '@/lib/data-access/checkins';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -39,29 +39,11 @@ export async function GET(request: NextRequest) {
 
       try {
         while (true) {
-          const queryOptions = {
+          const batch = await getCheckinExportBatch({
             take: BATCH_SIZE,
             where,
-            orderBy: { id: 'asc' as const },
-            include: {
-              guard: true,
-              shift: {
-                include: {
-                  site: true,
-                },
-              },
-            },
-            ...(cursor && { skip: 1, cursor: { id: cursor } }),
-          };
-
-          const batch: Array<
-            Checkin & {
-              guard: Guard;
-              shift: Shift & {
-                site: Site;
-              };
-            }
-          > = await prisma.checkin.findMany(queryOptions);
+            cursor,
+          });
 
           if (batch.length === 0) {
             break;

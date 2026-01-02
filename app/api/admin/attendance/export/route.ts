@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { Attendance, Guard, Prisma, Shift, Site } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay, format } from 'date-fns';
+import { getAttendanceExportBatch } from '@/lib/data-access/attendance';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -39,31 +39,11 @@ export async function GET(request: NextRequest) {
 
       try {
         while (true) {
-          const queryOptions = {
+          const batch = await getAttendanceExportBatch({
             take: BATCH_SIZE,
             where,
-            orderBy: { id: 'asc' as const },
-            include: {
-              shift: {
-                include: {
-                  guard: true,
-                  site: true,
-                },
-              },
-              guard: true, // Include guard directly using the new field
-            },
-            ...(cursor && { skip: 1, cursor: { id: cursor } }),
-          };
-
-          const batch: Array<
-            Attendance & {
-              shift: Shift & {
-                guard: Guard | null;
-                site: Site;
-              };
-              guard: Guard | null; // Include guard directly
-            }
-          > = await prisma.attendance.findMany(queryOptions);
+            cursor,
+          });
 
           if (batch.length === 0) {
             break;

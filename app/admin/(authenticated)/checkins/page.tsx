@@ -1,10 +1,10 @@
-import { prisma } from '@/lib/prisma';
 import { serialize, getPaginationParams } from '@/lib/utils';
 import CheckinList from './components/checkin-list';
 import { Suspense } from 'react';
 import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay } from 'date-fns';
 import { getAllGuards } from '@/lib/data-access/guards';
+import { getPaginatedCheckins } from '@/lib/data-access/checkins';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,22 +38,13 @@ export default async function CheckinsPage(props: CheckinsPageProps) {
     }
   }
 
-  const [checkins, totalCount, guards] = await Promise.all([
-    prisma.checkin.findMany({
+  const [{ checkins, totalCount }, guards] = await Promise.all([
+    getPaginatedCheckins({
       where,
       orderBy: { at: 'desc' },
       skip,
       take: perPage,
-      include: {
-        guard: true,
-        shift: {
-          include: {
-            site: true,
-          },
-        },
-      },
     }),
-    prisma.checkin.count({ where }),
     getAllGuards({ name: 'asc' }),
   ]);
 

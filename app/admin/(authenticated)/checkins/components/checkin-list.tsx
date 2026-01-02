@@ -113,7 +113,7 @@ export default function CheckinList({ checkins, page, perPage, totalCount, guard
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Time</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Shift Date</th>
-                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Location</th>{' '}
+                <th className="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Location</th>
                 {/* New Column */}
               </tr>
             </thead>

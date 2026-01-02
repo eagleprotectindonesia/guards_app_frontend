@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getAuthenticatedGuard } from '@/lib/guard-auth';
 import { z } from 'zod'; // Import z for Zod validation
 import { calculateDistance } from '@/lib/utils';
 import { getSystemSetting } from '@/lib/data-access/settings';
+import { recordAttendance } from '@/lib/data-access/attendance';
+import { getShiftById } from '@/lib/data-access/shifts';
 
 // Define a schema for the incoming request body
 const attendanceSchema = z.object({
@@ -28,10 +29,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const parsedBody = attendanceSchema.parse(json); // Use parsedBody for type-safe access
 
     // 1. Fetch Shift
-    const shift = await prisma.shift.findUnique({
-      where: { id: shiftId },
-      include: { attendance: true, site: true }, // Include attendance to check if it already exists
-    });
+    const shift = await getShiftById(shiftId, { attendance: true, site: true });
 
     if (!shift) {
       return NextResponse.json({ error: 'Shift not found' }, { status: 404 });
@@ -89,31 +87,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const metadata = parsedBody.location ? { location: parsedBody.location } : undefined;
 
     // 3. Record Attendance and Update Shift
-    const result = await prisma.$transaction(async tx => {
-      const attendance = await tx.attendance.create({
-        data: {
-          shiftId: shift.id,
-          guardId: shift.guardId, // Include guardId for direct filtering
-          recordedAt: new Date(),
-          status: 'present', // Assuming 'present' for initial attendance record
-          metadata: metadata, // Store location data in metadata
-        },
-      });
-
-      await tx.shift.update({
-        where: { id: shift.id },
-        data: {
-          status: shift.status === 'scheduled' ? 'in_progress' : undefined,
-          attendance: {
-            connect: { id: attendance.id },
-          },
-        },
-      });
-
-      return { attendance };
+    const attendance = await recordAttendance({
+      shiftId: shift.id,
+      guardId: shift.guardId!,
+      status: 'present',
+      metadata,
+      updateShiftStatus: shift.status === 'scheduled',
     });
 
-    return NextResponse.json({ attendance: result.attendance }, { status: 201 });
+    return NextResponse.json({ attendance }, { status: 201 });
   } catch (error: unknown) {
     console.error('Error recording attendance:', error);
     if (error instanceof z.ZodError) {

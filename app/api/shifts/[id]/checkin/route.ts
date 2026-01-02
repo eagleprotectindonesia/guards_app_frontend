@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { checkInSchema } from '@/lib/validations';
 import { getAuthenticatedGuard } from '@/lib/guard-auth';
 import { ZodError } from 'zod';
 import { calculateCheckInWindow } from '@/lib/scheduling';
 import { calculateDistance } from '@/lib/utils';
 import { getSystemSetting } from '@/lib/data-access/settings';
+import { recordCheckin } from '@/lib/data-access/checkins';
+import { getShiftById } from '@/lib/data-access/shifts';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: shiftId } = await params;
@@ -22,10 +23,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const now = new Date();
 
     // 1. Fetch Shift
-    const shift = await prisma.shift.findUnique({
-      where: { id: shiftId },
-      include: { site: true, shiftType: true, guard: true },
-    });
+    const shift = await getShiftById(shiftId);
 
     if (!shift) {
       return NextResponse.json({ error: 'Shift not found' }, { status: 404 });
@@ -105,38 +103,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const status: 'on_time' | 'late' = 'on_time'; // If window is 'open', it's on time.
     const isLastSlot = windowResult.isLastSlot;
-    
-    // 4. Transaction: Insert Checkin, Update Shift, Resolve Alerts
-    const result = await prisma.$transaction(async tx => {
-      const checkin = await tx.checkin.create({
-        data: {
-          shiftId: shift.id,
-          guardId: guardId,
-          status: status,
-          source: body.source || 'api',
-          metadata: body.location,
-          at: now,
-        },
-      });
 
-      const updateData = {
-        lastHeartbeatAt: now,
+    // 4. Record Checkin and Update Shift
+    const checkin = await recordCheckin({
+      shiftId: shift.id,
+      guardId: guardId,
+      status,
+      source: body.source,
+      metadata: body.location,
+      now,
+      shiftUpdateData: {
         checkInStatus: status,
         ...(shift.status === 'scheduled' && { status: 'in_progress' as const }),
         ...(status === 'on_time' && { missedCount: 0 }),
         ...(isLastSlot && { status: 'completed' as const }),
-      };
-
-      await tx.shift.update({
-        where: { id: shift.id },
-        data: updateData,
-      });
-
-      return { checkin };
+      },
     });
 
     return NextResponse.json({
-      checkin: result.checkin,
+      checkin,
       next_due_at: windowResult.nextSlotStart,
       status,
       isLastSlot,

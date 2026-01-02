@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getAuthenticatedGuard } from '@/lib/guard-auth';
 import { z } from 'zod'; // Import z for Zod validation
 import { calculateDistance } from '@/lib/utils';
+import { getSystemSetting } from '@/lib/data-access/settings';
 
 // Define a schema for the incoming request body
 const attendanceSchema = z.object({
@@ -46,7 +47,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     // 2.5 Distance Check
-    const maxDistanceStr = process.env.MAX_CHECKIN_DISTANCE_METERS;
+    const setting = await getSystemSetting('MAX_CHECKIN_DISTANCE_METERS');
+    const maxDistanceStr = setting?.value || process.env.MAX_CHECKIN_DISTANCE_METERS;
 
     if (maxDistanceStr) {
       const maxDistance = parseInt(maxDistanceStr, 10);

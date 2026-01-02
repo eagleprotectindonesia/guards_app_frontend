@@ -5,6 +5,7 @@ import { getAuthenticatedGuard } from '@/lib/guard-auth';
 import { ZodError } from 'zod';
 import { calculateCheckInWindow } from '@/lib/scheduling';
 import { calculateDistance } from '@/lib/utils';
+import { getSystemSetting } from '@/lib/data-access/settings';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: shiftId } = await params;
@@ -41,7 +42,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     // 2.5 Distance Check
-    const maxDistanceStr = process.env.MAX_CHECKIN_DISTANCE_METERS;
+    const setting = await getSystemSetting('MAX_CHECKIN_DISTANCE_METERS');
+    const maxDistanceStr = setting?.value || process.env.MAX_CHECKIN_DISTANCE_METERS;
+
     if (maxDistanceStr) {
       const maxDistance = parseInt(maxDistanceStr, 10);
       if (!isNaN(maxDistance) && maxDistance > 0) {

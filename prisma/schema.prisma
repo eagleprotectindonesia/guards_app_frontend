@@ -258,6 +258,14 @@ model Attendance {
   @@map("attendance")
 }
 
+model SystemSetting {
+  name  String @id
+  value String
+  note  String?
+
+  @@map("system_settings")
+}
+
 enum AttendanceStatus {
   present
   absent

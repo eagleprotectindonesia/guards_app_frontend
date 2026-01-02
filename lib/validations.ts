@@ -150,6 +150,9 @@ export const checkInSchema = z.object({
   source: z.string().optional(),
 });
 
+// --- System Settings ---
+export const updateSettingsSchema = z.record(z.string(), z.string());
+
 export type CreateSiteInput = z.infer<typeof createSiteSchema>;
 export type UpdateSiteInput = CreateSiteInput; // Same for now
 export type CreateAdminInput = z.infer<typeof createAdminSchema>;
@@ -162,3 +165,4 @@ export type UpdateShiftTypeInput = CreateShiftTypeInput; // Same for now
 export type CreateShiftInput = z.infer<typeof createShiftSchema>;
 export type UpdateShiftInput = CreateShiftInput; // Same for now
 export type CheckInInput = z.infer<typeof checkInSchema>;
+export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;

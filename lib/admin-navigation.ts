@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   User,
   UserCog,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -31,6 +32,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
 
 export const ADMIN_SECONDARY_NAV_ITEMS: NavItem[] = [
   { name: 'Admins', href: '/admin/admins', icon: UserCog, role: 'superadmin' },
+  { name: 'Settings', href: '/admin/settings', icon: Settings },
   // { name: 'Changelogs', href: '/admin/changelogs', icon: History, role: 'superadmin' },
   { name: 'Profile', href: '/admin/profile', icon: User },
 ];
@@ -47,4 +49,5 @@ export const ADMIN_LABEL_MAP: Record<string, string> = {
   profile: 'Profile',
   // changelogs: 'Changelogs',
   admins: 'Admins',
+  settings: 'Settings',
 };

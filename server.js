@@ -20,9 +20,9 @@ app.prepare().then(() => {
    * 🔥 CRITICAL TIMEOUTS 🔥
    * These prevent POST deadlocks forever
    */
-  server.requestTimeout = 15_000; // total request time
-  server.headersTimeout = 16_000; // must be > requestTimeout
-  server.keepAliveTimeout = 5_000; // avoid socket pile‑up
+  // server.requestTimeout = 15_000; // total request time
+  // server.headersTimeout = 16_000; // must be > requestTimeout
+  // server.keepAliveTimeout = 5_000; // avoid socket pile‑up
 
   /**
    * Optional but recommended hardening
